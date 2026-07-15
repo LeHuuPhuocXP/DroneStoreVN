@@ -1,0 +1,642 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="vn.edu.hcmuaf.fit.nhom7_thuctaplaptrinhweb_flycams.util.CsrfTokenUtil" %>
+<% CsrfTokenUtil.getOrCreate(session); %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quản Trị Đơn Hàng - SkyDrone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet">
+    <link rel="stylesheet"
+          href="${pageContext.request.contextPath}/stylesheets/admin/comfirmed-order-manage.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+<header class="main-header">
+    <div class="logo">
+        <img src="${pageContext.request.contextPath}/image/logoo2.png" alt="Logo">
+        <h2>SkyDrone Admin</h2>
+    </div>
+    <div class="header-right">
+        <a href="${pageContext.request.contextPath}/admin/profile"
+           class="text-decoration-none text-while">
+            <div class="thong-tin-admin d-flex align-items-center gap-2">
+                <i class="bi bi-person-circle fs-4"></i>
+                <span class="fw-semibold">${sessionScope.user.fullName}</span>
+            </div>
+        </a>
+        <button class="logout-btn" id="logoutBtn" title="Đăng xuất">
+            <i class="bi bi-box-arrow-right"></i>
+        </button>
+    </div>
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <p>Bạn có chắc muốn đăng xuất không?</p>
+            <div class="logout-actions">
+                <a href="${pageContext.request.contextPath}/home">
+                    <button id="confirmLogout" class="confirm">Có</button>
+                </a>
+                <button id="cancelLogout" class="cancel">Không</button>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="layout">
+    <jsp:include page="sidebar.jsp">
+        <jsp:param name="activePage" value="orders"/>
+        <jsp:param name="activeSubPage" value="confirmed"/>
+    </jsp:include>
+    <main class="main-content container-fluid p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+            <h4 class="text-primary fw-bold mb-0"><i class="bi bi-truck"></i> Danh Sách Giao Hàng</h4>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <div class="btn-group shadow-sm flex-wrap" role="group">
+                <button class="btn btn-outline-secondary active filter" data-status="all">
+                    <i class="bi bi-list-ul"></i> Tất cả
+                </button>
+                <button class="btn btn-outline-warning filter" data-status="Đang xử lý">
+                    <i class="bi bi-hourglass-split"></i> Chờ xử lý
+                </button>
+                <button class="btn btn-outline-primary filter" data-status="Đang giao hàng">
+                    <i class="bi bi-truck"></i> Đang giao
+                </button>
+                <button class="btn btn-outline-success filter" data-status="Giao thành công">
+                    <i class="bi bi-check-circle"></i> Thành công
+                </button>
+                <button class="btn btn-outline-danger filter" data-status="Giao thất bại">
+                    <i class="bi bi-x-circle"></i> Thất bại
+                </button>
+                <button class="btn btn-outline-info filter" data-status="Yêu cầu trả hàng">
+                    <i class="bi bi-arrow-return-left"></i> Yêu cầu trả
+                </button>
+                <button class="btn btn-outline-secondary filter" data-status="Đã trả hàng">
+                    <i class="bi bi-check-all"></i> Đã trả
+                </button>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm mb-3" style="background: linear-gradient(135deg,#f8f9ff 0%,#eef2ff 100%);">
+            <div class="card-body py-3">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-sm-auto">
+                        <label class="form-label fw-semibold mb-1" style="color:#3a3a6a;"><i class="bi bi-calendar-range me-1 text-primary"></i>Khoảng thời gian</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="date" id="filterDateFrom" class="form-control form-control-sm" style="min-width:140px;" title="Từ ngày">
+                            <span class="text-muted fw-bold">–</span>
+                            <input type="date" id="filterDateTo" class="form-control form-control-sm" style="min-width:140px;" title="Đến ngày">
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-auto">
+                        <label class="form-label fw-semibold mb-1" style="color:#3a3a6a;"><i class="bi bi-credit-card me-1 text-primary"></i>Trạng thái thanh toán</label>
+                        <select id="filterPayment" class="form-select form-select-sm" style="min-width:190px;">
+                            <option value="all">Tất cả</option>
+                            <option value="paid">Đã thanh toán (Online)</option>
+                            <option value="cod">Chưa thanh toán (COD)</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-auto">
+                        <label class="form-label fw-semibold mb-1" style="color:#3a3a6a;"><i class="bi bi-search me-1 text-primary"></i>Tìm kiếm</label>
+                        <input id="search" type="search" class="form-control form-control-sm" placeholder="Tìm theo mã, địa chỉ..." style="min-width:200px;">
+                    </div>
+                    <div class="col-12 col-sm-auto">
+                        <button id="btnResetFilter" class="btn btn-outline-secondary btn-sm" title="Xoá bộ lọc">
+                            <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-start align-items-center mb-2">
+            <label class="me-2">Hiển thị</label>
+            <select id="rowsPerPage" class="form-select d-inline-block" style="width:80px;">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+            </select>
+            <label class="ms-2">đơn hàng</label>
+        </div>
+        <table id="tblDonHang" class="table table-striped table-bordered align-middle">
+            <thead class="table-primary text-center">
+            <tr>
+                <th>Mã VC</th>
+                <th>Mã ĐH</th>
+                <th>Mã KH</th>
+                <th>Địa Chỉ</th>
+                <th>Ngày Lập</th>
+                <th>Thanh Toán</th>
+                <th>Trạng Thái</th>
+                <th>Thao Tác</th>
+            </tr>
+            </thead>
+            <tbody class="text-center" id="orderTableBody">
+            <c:forEach var="o" items="${orders}">
+                <tr data-date="<fmt:formatDate value="${o.createdAt}" pattern="yyyy-MM-dd"/>" data-payment="${o.paymentMethod}">
+                    <td>${o.shippingCode}</td>
+                    <td>${o.id}</td>
+                    <td>${o.userId}</td>
+                    <td>${o.fullAddress}</td>
+                    <td>
+                        <fmt:formatDate value="${o.createdAt}" pattern="dd/MM/yyyy"/>
+                    </td>
+                    <td>
+                        <c:choose>
+                            <c:when test="${o.paymentMethod eq 'COD' or empty o.paymentMethod}">
+                                <span class="badge bg-warning text-dark"><i class="bi bi-cash-coin me-1"></i>COD</span>
+                            </c:when>
+                            <c:otherwise>
+                                <span class="badge bg-success"><i class="bi bi-credit-card me-1"></i>Đã TT</span>
+                            </c:otherwise>
+                        </c:choose>
+                    </td>
+                    <td>
+                        <span class="badge ${o.statusClass}">${o.statusLabel}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-primary btn-sm view" data-id="${o.id}"
+                                onclick="loadOrderDetail('${o.id}')">
+                            <i class="bi bi-eye"></i> Xem / Cập Nhật
+                        </button>
+                    </td>
+                </tr>
+            </c:forEach>
+            </tbody>
+        </table>
+        <div class="d-flex justify-content-end align-items-center mt-3">
+            <div class="pagination-controls">
+                <button id="prevPage" class="btn btn-outline-primary btn-sm">Trước</button>
+                <span id="pageInfo" class="mx-2">1 / 1</span>
+                <button id="nextPage" class="btn btn-outline-primary btn-sm">Sau</button>
+            </div>
+        </div>
+    </main>
+</div>
+<div class="modal fade" id="modalDonHang">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-clipboard-check"></i> Chi Tiết & Cập Nhật Đơn Hàng</h5>
+                <button type="button" class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formDonHang">
+                    <input type="hidden" name="_csrf" value="${sessionScope.CSRF_TOKEN}">
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="info-card">
+                                <h6><i class="bi bi-info-circle-fill text-primary"></i> Thông Tin Hóa Đơn</h6>
+                                <div class="info-row">
+                                    <div class="info-label">Mã Hóa Đơn:</div>
+                                    <div class="info-value" id="dh-mahd">001</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Mã Khách Hàng:</div>
+                                    <div class="info-value" id="dh-makh">001</div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Tên Khách Hàng:</div>
+                                    <div class="info-value">
+                                        <input type="text" id="dh-tenkh"
+                                               class="form-control form-control-sm" value="Nguyễn Văn A">
+                                    </div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Số Điện Thoại:</div>
+                                    <div class="info-value">
+                                        <input type="text" id="dh-sdt"
+                                               class="form-control form-control-sm" value="0905123123">
+                                    </div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Email:</div>
+                                    <div class="info-value">
+                                        <input type="email" id="dh-email"
+                                               class="form-control form-control-sm"
+                                               value="nguyenvana@gmail.com">
+                                    </div>
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Ngày Lập:</div>
+                                    <div class="info-value" id="dh-ngaylap">2025-02-14</div>
+                                </div>
+                            </div>
+                            <div class="info-card">
+                                <h6><i class="bi bi-truck text-primary"></i> Thông Tin Giao Hàng</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Địa Chỉ Giao Hàng</label>
+                                    <input type="text" class="form-control" id="dh-diachi"
+                                           value="123 Nguyễn Trãi, Quận 1, TP.HCM">
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Mã Vận Chuyển:</div>
+                                    <div class="info-value" id="dh-mavc">GHN123</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Ngày Hoàn Thành</label>
+                                    <input type="date" class="form-control" id="dh-ngaynhan" value="">
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Phí Vận Chuyển:</div>
+                                    <div class="info-value" id="dh-phivc">35,000 VNĐ</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="info-card">
+                                <h6><i class="bi bi-cart-fill text-primary"></i> Danh Sách Sản Phẩm</h6>
+                                <table class="product-table table-sm">
+                                    <thead>
+                                    <tr>
+                                        <th style="width: 50%">Tên Sản Phẩm</th>
+                                        <th style="width: 15%">SL</th>
+                                        <th style="width: 35%">Đơn Giá</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="dh-sanpham">
+                                    <tr>
+                                        <td>Flycam Mini 4K</td>
+                                        <td>1</td>
+                                        <td>2,500,000 VNĐ</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pin Dự Phòng Drone</td>
+                                        <td>2</td>
+                                        <td>450,000 VNĐ</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                                <div class="total-row">
+                                    Tổng Tiền: <span id="dh-tong">3,400,000 VNĐ</span>
+                                </div>
+                            </div>
+                            <div class="info-card">
+                                <h6><i class="bi bi-credit-card-fill text-primary"></i> Thông Tin Thanh Toán & Vận
+                                    Chuyển</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Hình Thức Thanh Toán</label>
+                                    <input type="text" class="form-control" id="dh-httt"
+                                           value="Thanh toán khi nhận hàng" readonly>
+                                    <input type="hidden" id="dh-httt-raw" value="">
+                                </div>
+                                <div class="info-row">
+                                    <div class="info-label">Trạng Thái Thanh Toán:</div>
+                                    <div class="info-value" id="dh-tttt">Chưa thanh toán</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Trạng Thái Vận Chuyển</label>
+                                    <select class="form-select" id="dh-ttvc">
+                                        <option value="Đang xử lý">Đang xử lý</option>
+                                        <option value="Đang giao">Đang giao hàng</option>
+                                        <option value="Hoàn thành">Giao thành công</option>
+                                        <option value="Hủy">Giao thất bại</option>
+                                        <option value="Yêu cầu trả hàng">Yêu cầu trả hàng</option>
+                                        <option value="Đã trả hàng">Đã trả hàng</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Ghi Chú</label>
+                                    <textarea class="form-control" id="dh-note"
+                                              rows="3">Khách cần gọi trước khi giao.</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Đóng
+                </button>
+
+                <button type="submit" form="formDonHang" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Lưu Thay Đổi
+                </button>
+                <button type="button" id="btnHuyDon" class="btn btn-danger d-none" onclick="handleCancelOrder()">
+                    <i class="bi bi-x-circle"></i> Hủy Đơn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const CSRF_TOKEN = "${sessionScope.CSRF_TOKEN}";
+    let currentOrderId = null;
+    let currentUserId = null;
+
+    function loadOrderDetail(orderId) {
+        currentOrderId = orderId;
+        fetch('${pageContext.request.contextPath}/admin/order-detail?id=' + orderId)
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                return res.json();
+            })
+            .then(data => {
+                if (!data || !data.order) {
+                    alert("Không có dữ liệu đơn hàng");
+                    return;
+                }
+                const o = data.order;
+                document.getElementById("dh-mahd").innerText = o.id;
+                currentUserId = o.user_id;
+                document.getElementById("dh-makh").innerText = o.user_id;
+                document.getElementById("dh-tenkh").value = o.customerName || "";
+                document.getElementById("dh-sdt").value = o.phoneNumber || "";
+                document.getElementById("dh-email").value = o.email || "";
+                document.getElementById("dh-ngaylap").innerText =
+                    formatDate(o.createdAt);
+                document.getElementById("dh-diachi").value =
+                    o.fullAddress || "";
+                // Khóa trường nếu đơn đã bắt đầu giao
+                const isProcessing = (o.status === 'Đang xử lý');
+                document.getElementById("dh-tenkh").readOnly = !isProcessing;
+                document.getElementById("dh-sdt").readOnly = !isProcessing;
+                document.getElementById("dh-email").readOnly = !isProcessing;
+                document.getElementById("dh-diachi").readOnly = !isProcessing;
+                document.getElementById("dh-mavc").innerText =
+                    o.shippingCode || "Chưa có";
+                document.getElementById("dh-ngaynhan").value =
+                    o.completedAt ? o.completedAt.substring(0, 10) : "";
+                document.getElementById("dh-phivc").innerText =
+                    o.shippingFee
+                        ? Number(o.shippingFee).toLocaleString("vi-VN") + " VNĐ"
+                        : "0 VNĐ";
+                const items = data.items;
+                const tbody = document.getElementById("dh-sanpham");
+                tbody.innerHTML = "";
+                let total = 0;
+                items.forEach(item => {
+                    const tr = document.createElement("tr");
+                    const tdName = document.createElement("td");
+                    const imgSrc = item.imageUrl
+                        ? (item.imageUrl.startsWith('http') ? item.imageUrl : '${pageContext.request.contextPath}/' + item.imageUrl)
+                        : '${pageContext.request.contextPath}/image/logoTCN.png';
+                    tdName.innerHTML =
+                        '<div class="d-flex align-items-center justify-content-start gap-2 text-start">' +
+                        '<img src="' + imgSrc + '" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" />' +
+                        '<span class="text-truncate" style="max-width: 250px;" title="' + (item.productName || 'N/A') + '">' + (item.productName || 'N/A') + '</span>' +
+                        '</div>';
+                    tr.appendChild(tdName);
+                    const tdQty = document.createElement("td");
+                    tdQty.textContent = item.quantity ?? "0";
+                    tr.appendChild(tdQty);
+                    const tdPrice = document.createElement("td");
+                    const priceNum = Number(item.price) || 0;
+                    tdPrice.textContent = priceNum.toLocaleString("vi-VN") + " VNĐ";
+                    tr.appendChild(tdPrice);
+                    total += priceNum * (item.quantity || 1);
+                    tbody.appendChild(tr);
+                });
+                document.getElementById("dh-tong").innerText =
+                    total.toLocaleString("vi-VN") + " VNĐ";
+                // thông tin thanh toán
+                document.getElementById("dh-httt").value = o.paymentMethod === 'COD' || !o.paymentMethod
+                        ? 'Thanh toán khi nhận hàng' : 'Đã thanh toán online';
+                document.getElementById("dh-httt-raw").value = o.paymentMethod || 'COD';
+                document.getElementById("dh-tttt").innerText =
+                    o.paymentMethod && o.paymentMethod !== 'COD' ? "Đã thanh toán" : "Chưa thanh toán";
+                // Trạng thái vận chuyển
+                document.getElementById("dh-ttvc").value = o.status;
+                // Hiển thị nút Hủy Đơn nếu đang xử lý hoặc đang giao
+                const btnHuyDon = document.getElementById("btnHuyDon");
+                if (o.status === "Đang xử lý" || o.status === "Đang giao") {
+                    btnHuyDon.classList.remove("d-none");
+                } else {
+                    btnHuyDon.classList.add("d-none");
+                }
+                const modal = new bootstrap.Modal(
+                    document.getElementById("modalDonHang")
+                );
+                modal.show();
+            })
+            .catch(err => {
+                (function(){})(err);
+                alert("Lỗi tải chi tiết đơn hàng");
+            });
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return "N/A";
+        const d = new Date(dateStr);
+        return d.toLocaleDateString("vi-VN");
+    }
+
+    $(document).ready(function () {
+        // Lọc theo ngày và thanh toán
+        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+            if (settings.nTable.id !== 'tblDonHang') return true;
+            const dateFrom = $("#filterDateFrom").val();
+            const dateTo   = $("#filterDateTo").val();
+            const payment  = $("#filterPayment").val();
+            const row        = settings.aoData[dataIndex].nTr;
+            const rowDate    = $(row).data('date') || '';
+            const rowPayment = ($(row).data('payment') || '').toUpperCase();
+            // Lọc ngày
+            if (dateFrom && rowDate < dateFrom) return false;
+            if (dateTo   && rowDate > dateTo)   return false;
+            // Lọc thanh toán
+            if (payment === 'cod'  && rowPayment !== 'COD' && rowPayment !== '') return false;
+            if (payment === 'paid' && (rowPayment === 'COD' || rowPayment === '')) return false;
+            return true;
+        });
+        var table = $('#tblDonHang').DataTable({
+            "paging": true,
+            "lengthChange": false,
+            "pageLength": 10,
+            "searching": true,
+            "ordering": true,
+            "info": true,
+            order: [[1, "desc"]],
+            dom: "tr",
+            "language": {
+                "paginate": {"previous": "Trước", "next": "Sau"},
+                "info": "Trang _PAGE_ / _PAGES_",
+                "zeroRecords": "Không tìm thấy dữ liệu"
+            }
+        });
+        // Tìm kiếm text
+        $("#search").on("keyup", function () {
+            table.search(this.value).draw();
+        });
+        $("#rowsPerPage").on("change", function () {
+            table.page.len($(this).val()).draw();
+        });
+        // Lọc trạng thái vận chuyển (cột 6 vì đã thêm cột Thanh Toán)
+        $(".filter").on("click", function () {
+            $(".filter").removeClass("active");
+            $(this).addClass("active");
+            const status = $(this).data("status");
+            if (status === "all") table.column(6).search("").draw();
+            else table.column(6).search(status).draw();
+        });
+        // Lọc nâng cao: ngày và thanh toán
+        $("#filterDateFrom, #filterDateTo, #filterPayment").on("change", function () {
+            table.draw();
+        });
+        // Đặt lại bộ lọc
+        $("#btnResetFilter").on("click", function () {
+            $("#filterDateFrom").val('');
+            $("#filterDateTo").val('');
+            $("#filterPayment").val('all');
+            $("#search").val('');
+            $(".filter").removeClass("active");
+            $(".filter[data-status='all']").addClass("active");
+            table.column(6).search('').search('').draw();
+        });
+
+        function updateCustomPagination() {
+            var info = table.page.info();
+            $("#pageInfo").text((info.page + 1) + " / " + info.pages);
+            $("#prevPage").prop("disabled", info.page === 0);
+            $("#nextPage").prop("disabled", info.page >= info.pages - 1);
+        }
+
+        $("#nextPage").on("click", function () {
+            table.page("next").draw("page");
+            updateCustomPagination();
+        });
+        $("#prevPage").on("click", function () {
+            table.page("previous").draw("page");
+            updateCustomPagination();
+        });
+        table.on("draw", updateCustomPagination);
+        updateCustomPagination();
+        $("#logoutBtn").on("click", function () {
+            $("#logoutModal").css("display", "flex");
+        });
+        $("#cancelLogout").on("click", function () {
+            $("#logoutModal").hide();
+        });
+    });
+</script>
+<script>
+    document.getElementById("formDonHang").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        if (!currentOrderId) {
+            alert("Không xác định đơn hàng");
+            return;
+        }
+        const payload = {
+            orderId: currentOrderId,
+            userId: currentUserId,
+            fullName: document.getElementById("dh-tenkh").value,
+            email: document.getElementById("dh-email").value,
+            phoneNumber: document.getElementById("dh-sdt").value,
+            fullAddress: document.getElementById("dh-diachi").value,
+            paymentMethod: document.getElementById("dh-httt-raw").value || document.getElementById("dh-httt").value,
+            status: document.getElementById("dh-ttvc").value,
+            note: document.getElementById("dh-note").value
+        };
+        fetch("${pageContext.request.contextPath}/admin/update-order", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": CSRF_TOKEN
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Cập nhật thành công",
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    bootstrap.Modal.getInstance(
+                        document.getElementById("modalDonHang")
+                    ).hide();
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    Swal.fire("Lỗi", "Không cập nhật được đơn hàng", "error");
+                }
+            })
+            .catch(err => {
+                (function(){})(err);
+                Swal.fire("Lỗi", "Lỗi hệ thống", "error");
+            });
+    });
+
+    function handleCancelOrder() {
+        if (!currentOrderId) return;
+        const modalEl = document.getElementById('modalDonHang');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+        Swal.fire({
+            title: "Hủy đơn hàng?",
+            text: "Vui lòng nhập lý do hủy đơn hàng này (sẽ gửi cho khách hàng):",
+            input: "textarea",
+            inputPlaceholder: "Ví dụ: Hết hàng, khách yêu cầu hủy, v.v.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Xác Nhận Hủy",
+            cancelButtonText: "Quay Lại",
+            confirmButtonColor: "#dc3545",
+            cancelButtonColor: "#6c757d",
+            preConfirm: (noteValue) => {
+                if (!noteValue || noteValue.trim().length === 0) {
+                    Swal.showValidationMessage('Bạn cần nhập lý do hủy!');
+                }
+                return noteValue;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const params = new URLSearchParams();
+                params.append('id', currentOrderId);
+                params.append('action', 'cancel');
+                params.append('note', result.value.trim());
+                Swal.fire({
+                    title: "Đang xử lý...",
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                fetch('${pageContext.request.contextPath}/admin/order-action', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRF-Token': CSRF_TOKEN
+
+                    },
+                    body: params.toString()
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: "success",
+                                title: "Đã hủy đơn hàng",
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            bootstrap.Modal.getInstance(document.getElementById("modalDonHang")).hide();
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            Swal.fire("Lỗi", data.message || "Không thể hủy đơn hàng", "error");
+                        }
+                    })
+                    .catch(err => {
+                        (function(){})(err);
+                        Swal.fire("Lỗi", "Lỗi kết nối server", "error");
+                    });
+            }
+        });
+    }
+</script>
+</body>
+
+</html>

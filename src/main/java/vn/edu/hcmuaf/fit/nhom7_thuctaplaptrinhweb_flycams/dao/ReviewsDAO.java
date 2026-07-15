@@ -1,0 +1,219 @@
+package vn.edu.hcmuaf.fit.nhom7_thuctaplaptrinhweb_flycams.dao;
+
+import vn.edu.hcmuaf.fit.nhom7_thuctaplaptrinhweb_flycams.model.Reviews;
+import vn.edu.hcmuaf.fit.nhom7_thuctaplaptrinhweb_flycams.util.DBConnection;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ReviewsDAO {
+    public boolean hasUserReviewedProduct(int userId, int productId) {
+        String sql = "SELECT COUNT(*) > 0 FROM reviews WHERE user_id = ? AND product_id = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            ps.setInt(2, productId);
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getBoolean(1);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void saveReview(int userId, int productId, int rating, String content, String image) {
+        String dbImage = (image == null) ? "" : image;
+        String sql = """
+                    INSERT INTO reviews (user_id, product_id, rating, content, image, createdAt)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE rating=?, content=?, image=?, status='PENDING', createdAt=?
+                """;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            java.sql.Timestamp now = new java.sql.Timestamp(System.currentTimeMillis());
+            ps.setInt(1, userId);
+            ps.setInt(2, productId);
+            ps.setInt(3, rating);
+            ps.setString(4, content);
+            ps.setString(5, dbImage);
+            ps.setTimestamp(6, now);
+            ps.setInt(7, rating);
+            ps.setString(8, content);
+            ps.setString(9, dbImage);
+            ps.setTimestamp(10, now);
+
+            ps.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public double getAverageRating(int productId) {
+        String sql = "SELECT AVG(rating) FROM reviews WHERE product_id=? AND (status IS NULL OR status <> 'DELETED')";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getDouble(1);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int countReviews(int productId) {
+        String sql = "SELECT COUNT(*) FROM reviews WHERE product_id=? AND (status IS NULL OR status <> 'DELETED')";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int countByStar(int productId, int star) {
+        String sql = "SELECT COUNT(*) FROM reviews WHERE product_id=? AND rating=? AND (status IS NULL OR status <> 'DELETED')";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+            ps.setInt(2, star);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int countWithComment(int productId) {
+        String sql = """
+                    SELECT COUNT(*) 
+                    FROM reviews 
+                    WHERE product_id=? 
+                      AND content IS NOT NULL 
+                      AND TRIM(content) <> ''
+                      AND (status IS NULL OR status <> 'DELETED')
+                """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public List<Reviews> getReviewsByProductPaging(int productId, int page, int pageSize) {
+        List<Reviews> list = new ArrayList<>();
+        int offset = (page - 1) * pageSize;
+
+        String sql = """
+                SELECT r.*, u.username, u.avatar
+                FROM reviews r
+                JOIN users u ON r.user_id = u.id
+                WHERE r.product_id = ? AND (r.status IS NULL OR r.status <> 'DELETED')
+                ORDER BY r.createdAt DESC
+                LIMIT ? OFFSET ?
+                """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, productId);
+            ps.setInt(2, pageSize);
+            ps.setInt(3, offset);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                Reviews r = new Reviews();
+                r.setId(rs.getInt("id"));
+                r.setProductId(rs.getInt("product_id"));
+                r.setUserId(rs.getInt("user_id"));
+                r.setRating(rs.getInt("rating"));
+                r.setContent(rs.getString("content"));
+                r.setCreatedAt(rs.getTimestamp("createdAt"));
+                r.setUsername(rs.getString("username"));
+                r.setAvatar(rs.getString("avatar"));
+                r.setStatus(rs.getString("status"));
+                r.setAdminNote(rs.getString("adminNote"));
+                r.setImage(rs.getString("image"));
+                list.add(r);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public List<Reviews> getAllBadReviews() {
+        List<Reviews> list = new ArrayList<>();
+        String sql = """
+                SELECT r.*, u.username, u.avatar, p.productName
+                FROM reviews r
+                JOIN users u ON r.user_id = u.id
+                JOIN products p ON r.product_id = p.id
+                WHERE r.rating <= 3
+                ORDER BY r.createdAt DESC
+                """;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Reviews r = new Reviews();
+                r.setId(rs.getInt("id"));
+                r.setProductId(rs.getInt("product_id"));
+                r.setUserId(rs.getInt("user_id"));
+                r.setRating(rs.getInt("rating"));
+                r.setContent(rs.getString("content"));
+                r.setCreatedAt(rs.getTimestamp("createdAt"));
+                r.setUsername(rs.getString("username"));
+                r.setAvatar(rs.getString("avatar"));
+                r.setStatus(rs.getString("status"));
+                r.setAdminNote(rs.getString("adminNote"));
+                r.setProductName(rs.getString("productName"));
+                r.setImage(rs.getString("image"));
+                list.add(r);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public boolean updateReviewStatus(int id, String status, String adminNote) {
+        String sql = "UPDATE reviews SET status = ?, adminNote = ? WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setString(2, adminNote);
+            ps.setInt(3, id);
+            return ps.executeUpdate() > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+}

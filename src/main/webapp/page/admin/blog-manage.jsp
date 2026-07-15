@@ -1,0 +1,1435 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.fmt" prefix="fmt" %>
+<%@ taglib uri="jakarta.tags.functions" prefix="fn" %>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang Quản Lý Blog - SkyDrone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/47.2.0/ckeditor5.css" crossorigin>
+    <link rel="stylesheet"
+          href="https://cdn.ckeditor.com/ckeditor5-premium-features/47.2.0/ckeditor5-premium-features.css" crossorigin>
+    <script src="https://cdn.ckeditor.com/ckeditor5/47.2.0/ckeditor5.umd.js" crossorigin></script>
+    <script src="https://cdn.ckeditor.com/ckeditor5-premium-features/47.2.0/ckeditor5-premium-features.umd.js"
+            crossorigin></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/stylesheets/admin/blog-manage.css">
+    <style>
+        .dataTables_paginate,
+        .dataTables_filter,
+        .dataTables_length,
+        .dataTables_info {
+            display: none !important;
+        }
+
+        .ck-editor__editable {
+            min-height: 400px;
+        }
+
+        .ck.ck-editor__main > .ck-editor__editable {
+            background: #fff;
+        }
+
+        .ck.ck-balloon-panel {
+            z-index: 10055 !important;
+        }
+
+        .ck.ck-modal__overlay {
+            z-index: 10060 !important;
+        }
+
+        .ck-body-wrapper {
+            z-index: 10065 !important;
+        }
+
+        .modal {
+            --bs-modal-zindex: 1055;
+        }
+
+        .modal-backdrop {
+            z-index: 1054;
+        }
+    </style>
+</head>
+<body>
+<header class="main-header">
+    <div class="logo">
+        <img src="${pageContext.request.contextPath}/image/logoo2.png" alt="Logo">
+        <h2>SkyDrone Admin</h2>
+    </div>
+    <div class="header-right">
+        <a href="${pageContext.request.contextPath}/admin/profile"
+           class="text-decoration-none text-while">
+            <div class="thong-tin-admin d-flex align-items-center gap-2">
+                <i class="bi bi-person-circle fs-4"></i>
+                <span class="fw-semibold">${sessionScope.user.fullName}</span>
+            </div>
+        </a>
+        <button class="logout-btn" id="logoutBtn" title="Đăng xuất">
+            <i class="bi bi-box-arrow-right"></i>
+        </button>
+    </div>
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <p>Bạn có chắc muốn đăng xuất không?</p>
+            <div class="logout-actions">
+                <a href="${pageContext.request.contextPath}/home">
+                    <button id="confirmLogout" class="confirm">Có</button>
+                </a>
+                <button id="cancelLogout" class="cancel">Không</button>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="layout">
+    <jsp:include page="sidebar.jsp">
+        <jsp:param name="activePage" value="blog"/>
+    </jsp:include>
+    <main class="main-content container-fluid p-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="text-primary fw-bold"><i class="bi bi-journal-text"></i> Quản Lý Blog</h4>
+        </div>
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-primary" id="tabBlog" onclick="showTab('blog')">
+                <i class="bi bi-journal-text"></i> Bài Viết
+            </button>
+            <button class="btn btn-outline-primary" id="tabReview" onclick="showTab('review')">
+                <i class="bi bi-chat-left-text"></i> Bình Luận
+                <span class="badge bg-danger ms-1">${fn:length(reviews)}</span>
+            </button>
+        </div>
+        <div id="panelBlog">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <form class="d-flex" role="search" style="max-width: 300px;">
+                <input type="hidden" name="_csrf" value="${sessionScope.CSRF_TOKEN}">
+                <div class="input-group">
+                                            <span class="input-group-text bg-primary text-white">
+                                                <i class="bi bi-search"></i>
+                                            </span>
+                    <input id="searchBlogInput" type="search" class="form-control"
+                           placeholder="Tìm kiếm bài viết...">
+                </div>
+            </form>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" data-bs-toggle="modal"
+                        data-bs-target="#addBlogModal">
+                    <i class="bi bi-plus-lg"></i> Thêm Bài Viết
+                </button>
+                <button class="btn btn-secondary" type="button" onclick="showActivePanel()" style="display: none;" id="backFromTrashBtn">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </button>
+                <button class="btn btn-outline-secondary" id="trashToggleBtn" type="button"
+                        onclick="showTrashPanel()">
+                    <i class="bi bi-trash"></i> Thùng rác
+                </button>
+            </div>
+
+        </div>
+        <div class="modal fade" id="addBlogModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form id="addBlogForm"
+                          action="${pageContext.request.contextPath}/admin/blog-manage"
+                          method="post" onsubmit="return syncAddEditor()">
+                        <input type="hidden" name="_csrf" value="${sessionScope.CSRF_TOKEN}">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-plus-lg"></i> Thêm Bài Viết</h5>
+                            <button type="button" class="btn-close"
+                                    data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="action" value="add">
+                            <div class="mb-3">
+                                <label class="form-label">Tiêu đề</label>
+                                <input type="text" name="title" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nội dung</label>
+                                <textarea name="content" id="add-content" class="form-control"
+                                          rows="6"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Link ảnh</label>
+                                <div class="img-preview-wrap">
+                                    <img id="add-img-thumb" class="img-preview-thumb" alt="Preview">
+                                    <div id="add-img-err" class="img-preview-err">
+                                        <i class="bi bi-image-slash" style="font-size:20px;"></i>
+                                        <span>URL lỗi</span>
+                                    </div>
+                                    <input type="text" name="image" id="add-image" class="form-control"
+                                           placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Mã sản phẩm</label>
+                                <input type="number" name="productId" class="form-control">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary"
+                                    data-bs-dismiss="modal">
+                                Hủy
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                Lưu
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-start align-items-center mb-2 gap-3 flex-wrap">
+            <div class="d-flex align-items-center">
+                <label class="me-2">Hiển thị</label>
+                <select id="rowsPerPage" class="form-select d-inline-block" style="width:80px;">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                </select>
+                <label class="ms-2">bài viết</label>
+            </div>
+            <div class="d-flex align-items-center">
+                <label class="me-2">Sắp xếp</label>
+                <select id="sortSelect" class="form-select" style="width:220px;">
+                    <option value="">-- Tùy chọn --</option>
+                    <option value="name-asc">Tên A → Z</option>
+                    <option value="name-desc">Tên Z → A</option>
+                    <option value="id-asc">Mã BV ↑ (Thấp → Cao)</option>
+                    <option value="id-desc">Mã BV ↓ (Cao → Thấp)</option>
+                    <option value="custom">Theo ý admin</option>
+                </select>
+            </div>
+        </div>
+        <div id="dsblog" class="users-table mt-4">
+            <div id="activeBlogSection">
+            <section>
+                <table id="tableBlog"
+                       class="table table-striped table-bordered align-middle text-center">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th style="width: 200px;">Tiêu đề</th>
+                        <th>Nội dung</th>
+                        <th>Ảnh</th>
+                        <th>Ngày tạo</th>
+                        <th>Mã sản phẩm</th>
+                        <th>Lượt xem</th>
+                        <th>Hành động</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <c:forEach var="p" items="${posts}">
+                        <tr>
+                            <td>${p.id}</td>
+                            <td class="text-start">${p.title}</td>
+                            <td class="text-start">
+                                <c:set var="words"
+                                       value="${fn:split(p.content, ' ')}"/>
+                                <c:choose>
+                                    <c:when test="${fn:length(words) > 8}">
+                                        <c:forEach var="w" items="${words}" begin="0"
+                                                   end="7">
+                                            ${w}
+                                        </c:forEach>...
+                                    </c:when>
+                                    <c:otherwise>
+                                        ${p.content}
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${not empty p.image}">
+                                        <img src="${p.image}" class="blog-thumb">
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="text-muted">Không có ảnh</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
+                            <td>
+                                <fmt:formatDate value="${p.createdAt}"
+                                                pattern="yyyy-MM-dd"/>
+                            </td>
+                            <td>${p.productId}</td>
+                            <td>${p.view}</td>
+                            <td>
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <button type="button"
+                                            class="btn btn-warning btn-sm"
+                                            data-id="${p.id}"
+                                            data-title="${fn:escapeXml(p.title)}"
+                                            data-content="${fn:escapeXml(p.content)}"
+                                            data-image="${p.image}"
+                                            data-product="${p.productId}"
+                                            onclick="openEditModal(this)"
+                                            title="Sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                            data-id="${p.id}" onclick="confirmDelete(this)"
+                                            title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-info btn-sm"
+                                            data-id="${p.id}"
+                                            data-title="${fn:escapeXml(p.title)}"
+                                            data-content="${fn:escapeXml(p.content)}"
+                                            data-image="${p.image}"
+                                            data-date="<fmt:formatDate value='${p.createdAt}' pattern='yyyy-MM-dd'/>"
+                                            data-product="${p.productId}"
+                                            data-views="${p.view}"
+                                            onclick="openViewModal(this)"
+                                            title="Xem">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                    </tbody>
+                </table>
+                <div class="d-flex justify-content-end align-items-center mt-3">
+                    <button id="prevPage"
+                            class="btn btn-outline-primary btn-sm">Trước
+                    </button>
+                    <span id="pageInfo" class="mx-2">1 / 1</span>
+                    <button id="nextPage"
+                            class="btn btn-outline-primary btn-sm">Sau
+                    </button>
+                </div>
+            </section>
+            </div>
+            <section id="trashBlogPanel" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0">Bài viết đã xóa</h5>
+                    </div>
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text bg-primary text-white">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="search" id="searchTrashInput" class="form-control"
+                               placeholder="Tìm kiếm thùng rác...">
+                    </div>
+                </div>
+                <table id="tableTrash"
+                       class="table table-striped table-bordered align-middle text-center">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th style="width: 200px;">Tiêu đề</th>
+                        <th>Nội dung</th>
+                        <th>Ảnh</th>
+                        <th>Ngày tạo</th>
+                        <th>Mã sản phẩm</th>
+                        <th>Lượt xem</th>
+                        <th>Hành động</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <c:forEach var="p" items="${deletedPosts}">
+                        <tr>
+                            <td>${p.id}</td>
+                            <td class="text-start">${p.title}</td>
+                            <td class="text-start">
+                                <c:set var="words" value="${fn:split(p.content, ' ')}"/>
+                                <c:choose>
+                                    <c:when test="${fn:length(words) > 8}">
+                                        <c:forEach var="w" items="${words}" begin="0"
+                                                   end="7">
+                                            ${w}
+                                        </c:forEach>...
+                                    </c:when>
+                                    <c:otherwise>
+                                        ${p.content}
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
+                            <td>
+                                <c:choose>
+                                    <c:when test="${not empty p.image}">
+                                        <img src="${p.image}" class="blog-thumb">
+                                    </c:when>
+                                    <c:otherwise>
+                                        <span class="text-muted">Không có ảnh</span>
+                                    </c:otherwise>
+                                </c:choose>
+                            </td>
+                            <td>
+                                <fmt:formatDate value="${p.createdAt}"
+                                                pattern="yyyy-MM-dd"/>
+                            </td>
+                            <td>${p.productId}</td>
+                            <td>${p.view}</td>
+                            <td>
+                                <button type="button" class="btn btn-success btn-sm"
+                                        data-id="${p.id}"
+                                        onclick="confirmRestore(this)"
+                                        title="Khôi phục">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
+                                </button>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                    </tbody>
+                </table>
+                <div class="d-flex justify-content-end align-items-center mt-3">
+                    <button id="prevTrashPage" class="btn btn-outline-primary btn-sm">Trước</button>
+                    <span id="trashPageInfo" class="mx-2">1 / 1</span>
+                    <button id="nextTrashPage" class="btn btn-outline-primary btn-sm">Sau</button>
+                </div>
+            </section>
+            <section>
+                <div id="blog-detail" style="display: none;">
+                    <button class="btn btn-secondary mb-3" onclick="showList()"><i class="bi bi-arrow-left"></i> Quay
+                        lại
+                    </button>
+                    <table class="table table-bordered">
+                        <tr>
+                            <td>ID bài viết</td>
+                            <td id="post-id"></td>
+                        </tr>
+                        <tr>
+                            <td>Tiêu đề</td>
+                            <td id="post-title"></td>
+                        </tr>
+                        <tr>
+                            <td>Nội dung</td>
+                            <td id="post-content"></td>
+                        </tr>
+                        <tr>
+                            <td>Ảnh</td>
+                            <td><img id="post-image" width="250"></td>
+                        </tr>
+                        <tr>
+                            <td>Ngày tạo</td>
+                            <td id="post-date"></td>
+                        </tr>
+                        <tr>
+                            <td>Mã sản phẩm</td>
+                            <td id="post-product"></td>
+                        </tr>
+                    </table>
+                </div>
+            </section>
+            <div class="modal fade" id="editBlogModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <form id="editBlogForm"
+                              action="${pageContext.request.contextPath}/admin/blog-manage"
+                              method="post" onsubmit="return syncEditEditor()">
+                            <input type="hidden" name="_csrf" value="${sessionScope.CSRF_TOKEN}">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="bi bi-pencil"></i> Sửa bài viết</h5>
+                                <button type="button" class="btn-close"
+                                        data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" name="action" value="edit">
+                                <input type="hidden" name="id" id="edit-id">
+                                <div class="mb-3">
+                                    <label class="form-label">Tiêu đề</label>
+                                    <input type="text" name="title" id="edit-title"
+                                           class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Nội dung</label>
+                                    <textarea name="content" id="edit-content"
+                                              class="form-control" rows="6"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Ảnh</label>
+                                    <div class="img-preview-wrap">
+                                        <img id="edit-img-thumb" class="img-preview-thumb" alt="Preview">
+                                        <div id="edit-img-err" class="img-preview-err">
+                                            <i class="bi bi-image-slash" style="font-size:20px;"></i>
+                                            <span>URL lỗi</span>
+                                        </div>
+                                        <input type="text" name="image" id="edit-image" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Mã sản phẩm</label>
+                                    <input type="number" name="productId" id="edit-product"
+                                           class="form-control">
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Hủy
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    Lưu
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="viewBlogModal" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-eye"></i> Chi tiết bài viết</h5>
+                            <button type="button" class="btn-close"
+                                    data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th style="width: 150px;">ID</th>
+                                    <td id="view-id"></td>
+                                </tr>
+                                <tr>
+                                    <th>Tiêu đề</th>
+                                    <td id="view-title"></td>
+                                </tr>
+                                <tr>
+                                    <th>Nội dung</th>
+                                    <td id="view-content" style="white-space: pre-wrap;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Ảnh</th>
+                                    <td>
+                                        <img id="view-image"
+                                             style="max-width: 100%; border-radius: 6px;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Ngày tạo</th>
+                                    <td id="view-date"></td>
+                                </tr>
+                                <tr>
+                                    <th>Mã sản phẩm</th>
+                                    <td id="view-product"></td>
+                                </tr>
+                                <tr>
+                                    <th>Lượt xem</th>
+                                    <td id="view-views"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary"
+                                    data-bs-dismiss="modal">Đóng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+        <div id="panelReview" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="input-group" style="max-width:300px;">
+        <span class="input-group-text bg-primary text-white">
+            <i class="bi bi-search"></i>
+        </span>
+                    <input type="search" id="searchReviewInput" class="form-control"
+                           placeholder="Tìm kiếm bình luận...">
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-start align-items-center mb-2 gap-3 flex-wrap">
+                <div class="d-flex align-items-center">
+                    <label class="me-2">Hiển thị</label>
+                    <select id="reviewRowsPerPage" class="form-select d-inline-block" style="width:80px;">
+                        <option value="5" selected>5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                    </select>
+                    <label class="ms-2">bình luận</label>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="mb-0">Sắp xếp:</label>
+                    <select id="reviewSortSelect" class="form-select" style="width:200px;">
+                        <option value="">-- Tùy chọn --</option>
+                        <option value="date-desc">Mới nhất trước</option>
+                        <option value="date-asc">Cũ nhất trước</option>
+                        <option value="user-asc">Người dùng A → Z</option>
+                        <option value="user-desc">Người dùng Z → A</option>
+                        <option value="blog-asc">Bài viết A → Z</option>
+                    </select>
+                </div>
+            </div>
+            <table id="tableReview" class="table table-striped table-bordered align-middle text-center">
+                <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Bài Viết</th>
+                    <th>Người Dùng</th>
+                    <th>Nội dung</th>
+                    <th>Ngày tạo</th>
+                    <th>Hành động</th>
+                </tr>
+                </thead>
+                <tbody>
+                <c:forEach var="r" items="${reviews}">
+                    <tr>
+                        <td>${r.id}</td>
+                        <td class="text-start">${fn:escapeXml(r.blogTitle)}</td>
+                        <td>${fn:escapeXml(r.username)}</td>
+                        <td class="text-start">
+                            <c:set var="shortContent" value="${fn:substring(r.content, 0, 60)}"/>
+                            <c:choose>
+                                <c:when test="${fn:length(r.content) > 60}">
+                                    ${fn:escapeXml(shortContent)}...
+                                </c:when>
+                                <c:otherwise>
+                                    ${fn:escapeXml(r.content)}
+                                </c:otherwise>
+                            </c:choose>
+                        </td>
+                        <td><fmt:formatDate value="${r.createdAt}" pattern="yyyy-MM-dd HH:mm"/></td>
+                        <td>
+                            <button type="button" class="btn btn-info btn-sm me-1"
+                                    data-id="${r.id}"
+                                    data-content="${fn:escapeXml(r.content)}"
+                                    data-username="${fn:escapeXml(r.username)}"
+                                    data-blogtitle="${fn:escapeXml(r.blogTitle)}"
+                                    data-date="<fmt:formatDate value='${r.createdAt}' pattern='yyyy-MM-dd HH:mm'/>"
+                                    onclick="openViewReview(this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    data-id="${r.id}" onclick="confirmDeleteReview(this)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </c:forEach>
+                </tbody>
+            </table>
+            <div class="d-flex justify-content-end align-items-center mt-3">
+                <button id="prevReviewPage" class="btn btn-outline-primary btn-sm">Trước</button>
+                <span id="reviewPageInfo" class="mx-2">1 / 1</span>
+                <button id="nextReviewPage" class="btn btn-outline-primary btn-sm">Sau</button>
+            </div>
+        </div>
+        <div class="modal fade" id="viewReviewModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="bi bi-chat-left-text"></i> Chi tiết bình luận</h5>
+                        <button type="button" class="btn-close btn-close-white"
+                                data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th style="width:150px;">Bài viết</th>
+                                <td id="vr-blogtitle"></td>
+                            </tr>
+                            <tr>
+                                <th>Người dùng</th>
+                                <td id="vr-username"></td>
+                            </tr>
+                            <tr>
+                                <th>Ngày tạo</th>
+                                <td id="vr-date"></td>
+                            </tr>
+                            <tr>
+                                <th>Nội dung</th>
+                                <td id="vr-content" style="white-space: pre-wrap; line-height: 1.7;"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary"
+                                data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+<script>
+    const baseUrl = "${pageContext.request.contextPath}";
+    const CSRF_TOKEN = "${sessionScope.CSRF_TOKEN}";
+    $(document).ready(function () {
+        blogTable = $('#tableBlog').DataTable({
+            pageLength: 5,
+            order: [],
+            columnDefs: [{targets: [2, 3, 7], orderable: false}],
+            language: {zeroRecords: "Không tìm thấy dữ liệu"}
+        });
+        $('#searchBlogInput').on('keyup', function () {
+            blogTable.search(this.value).draw();
+        });
+        // Pagination custom
+        $('#prevPage').click(() => {
+            blogTable.page('previous').draw('page');
+            updatePageInfo();
+        });
+        $('#nextPage').click(() => {
+            blogTable.page('next').draw('page');
+            updatePageInfo();
+        });
+        $('#sortSelect').change(function () {
+            let value = $(this).val();
+            switch (value) {
+                case 'name-asc':
+                    blogTable.order([1, 'asc']).draw();
+                    break;
+                case 'name-desc':
+                    blogTable.order([1, 'desc']).draw();
+                    break;
+                case 'id-asc':
+                    blogTable.order([0, 'asc']).draw();
+                    break;
+                case 'id-desc':
+                    blogTable.order([0, 'desc']).draw();
+                    break;
+                default:
+                    blogTable.order([]).draw();
+            }
+        });
+
+        $('#rowsPerPage').change(function () {
+            blogTable.page.len($(this).val()).draw();
+        });
+        blogTable.on('draw', updatePageInfo);
+        updatePageInfo();
+        let trashTable = $('#tableTrash').DataTable({
+            pageLength: 5,
+            order: [],
+            columnDefs: [{targets: [2, 3, 7], orderable: false}],
+            language: {zeroRecords: "Không tìm thấy dữ liệu"}
+        });
+        $('#searchTrashInput').on('keyup', function () {
+            trashTable.search(this.value).draw();
+        });
+        $('#prevTrashPage').click(() => {
+            trashTable.page('previous').draw('page');
+            updateTrashPageInfo();
+        });
+        $('#nextTrashPage').click(() => {
+            trashTable.page('next').draw('page');
+            updateTrashPageInfo();
+        });
+        trashTable.on('draw', updateTrashPageInfo);
+        updateTrashPageInfo();
+        document.addEventListener('focusin', function (e) {
+            if (e.target.closest('.ck-body-wrapper, .ck-balloon-panel, .ck-link-form, .ck-input')) {
+                e.stopImmediatePropagation();
+            }
+        }, true);
+        const urlParams = new URLSearchParams(window.location.search);
+        const msg = urlParams.get('msg');
+        const error = urlParams.get('error');
+
+        const alerts = {
+            added:        { icon: 'success', title: 'Thành công!',  text: 'Đã thêm bài viết mới.' },
+            edited:       { icon: 'success', title: 'Thành công!',  text: 'Đã cập nhật bài viết.' },
+            deleted:      { icon: 'success', title: 'Đã xóa!',      text: 'Bài viết đã được xóa.' },
+            add_failed:   { icon: 'error',   title: 'Thất bại!',    text: 'Không thể thêm bài viết. Vui lòng thử lại.' },
+            edit_failed:  { icon: 'error',   title: 'Thất bại!',    text: 'Không thể cập nhật bài viết. Vui lòng thử lại.' },
+            delete_failed:{ icon: 'error',   title: 'Thất bại!',    text: 'Không thể xóa bài viết. Vui lòng thử lại.' },
+            restored:          { icon: 'success', title: 'Thành công!',  text: 'Bài viết đã được khôi phục.' },
+            restore_failed:    { icon: 'error',   title: 'Thất bại!',    text: 'Không thể khôi phục bài viết.' },
+            review_deleted:    { icon: 'success', title: 'Đã xóa!',      text: 'Bình luận đã được xóa.' },
+            review_delete_failed:{ icon: 'error',   title: 'Thất bại!',  text: 'Không thể xóa bình luận.' },
+        };
+
+        const key = msg || error;
+        if (key && alerts[key]) {
+            Swal.fire({
+                icon: alerts[key].icon,
+                title: alerts[key].title,
+                text: alerts[key].text,
+                timer: alerts[key].icon === 'success' ? 2000 : undefined,
+                showConfirmButton: alerts[key].icon !== 'success',
+                confirmButtonColor: '#0d6efd'
+            });
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+    });
+    const {
+        ClassicEditor,
+        Essentials,
+        Paragraph,
+        Alignment,
+        AutoImage,
+        Autoformat,
+        AutoLink,
+        ImageBlock,
+        BlockQuote,
+        Bold,
+        Code,
+        CodeBlock,
+        FontBackgroundColor,
+        FontColor,
+        FontFamily,
+        FontSize,
+        Heading,
+        Highlight,
+        HorizontalLine,
+        ImageCaption,
+        ImageInsert,
+        ImageInsertViaUrl,
+        ImageResize,
+        ImageStyle,
+        ImageTextAlternative,
+        ImageToolbar,
+        ImageUpload,
+        Indent,
+        IndentBlock,
+        Italic,
+        Link,
+        LinkImage,
+        List,
+        ListProperties,
+        MediaEmbed,
+        RemoveFormat,
+        SpecialCharacters,
+        SpecialCharactersArrows,
+        SpecialCharactersCurrency,
+        SpecialCharactersEssentials,
+        SpecialCharactersLatin,
+        SpecialCharactersMathematical,
+        SpecialCharactersText,
+        Strikethrough,
+        Subscript,
+        Superscript,
+        Table,
+        TableCaption,
+        TableCellProperties,
+        TableColumnResize,
+        TableProperties,
+        TableToolbar,
+        Underline,
+        Base64UploadAdapter
+    } = window.CKEDITOR;
+    let addEditor, editEditor;
+    const editorConfig = {
+        licenseKey: 'eyJhbGciOiJFUzI1NiJ9.eyJleHAiOjE3Nzc3NjYzOTksImp0aSI6IjZjNDQyM2I1LWE5MTYtNDcyOC05NjAyLWRkMTkwM2RhZjQ4MSIsInVzYWdlRW5kcG9pbnQiOiJodHRwczovL3Byb3h5LWV2ZW50LmNrZWRpdG9yLmNvbSIsImRpc3RyaWJ1dGlvbkNoYW5uZWwiOlsiY2xvdWQiLCJkcnVwYWwiLCJzaCJdLCJ3aGl0ZUxhYmVsIjp0cnVlLCJsaWNlbnNlVHlwZSI6InRyaWFsIiwiZmVhdHVyZXMiOlsiKiJdLCJ2YyI6IjVlNzljMTExIn0.QeBKswpbgvJ6NHs0Ng3FO3qFW2P-ZUM6qUOwk52x2JjriNGnpV5YhiekUWCDN2GPtT3Ws0oOdOo0i9NeHMhYAw',
+
+        toolbar: {
+            items: [
+                'undo', 'redo',
+                '|',
+                'heading',
+                '|',
+                'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor',
+                '|',
+                'bold', 'italic', 'underline', 'strikethrough', 'subscript', 'superscript', 'code', 'removeFormat',
+                '|',
+                'specialCharacters', 'horizontalLine', 'link', 'insertImage', 'insertImageViaUrl', 'mediaEmbed', 'insertTable',
+                'highlight', 'blockQuote', 'codeBlock',
+                '|',
+                'alignment',
+                '|',
+                'bulletedList', 'numberedList', 'outdent', 'indent'
+            ],
+            shouldNotGroupWhenFull: true
+        },
+        plugins: [
+            Alignment,
+            Autoformat,
+            AutoImage,
+            AutoLink,
+            Base64UploadAdapter,
+            BlockQuote,
+            Bold,
+            Code,
+            CodeBlock,
+            Essentials,
+            FontBackgroundColor,
+            FontColor,
+            FontFamily,
+            FontSize,
+            Heading,
+            Highlight,
+            HorizontalLine,
+            ImageBlock,
+            ImageCaption,
+            ImageInsert,
+            ImageInsertViaUrl,
+            ImageResize,
+            ImageStyle,
+            ImageTextAlternative,
+            ImageToolbar,
+            ImageUpload,
+            Indent,
+            IndentBlock,
+            Italic,
+            Link,
+            LinkImage,
+            List,
+            ListProperties,
+            MediaEmbed,
+            Paragraph,
+            RemoveFormat,
+            SpecialCharacters,
+            SpecialCharactersArrows,
+            SpecialCharactersCurrency,
+            SpecialCharactersEssentials,
+            SpecialCharactersLatin,
+            SpecialCharactersMathematical,
+            SpecialCharactersText,
+            Strikethrough,
+            Subscript,
+            Superscript,
+            Table,
+            TableCaption,
+            TableCellProperties,
+            TableColumnResize,
+            TableProperties,
+            TableToolbar,
+            Underline
+        ],
+        fontFamily: {
+            options: [
+                'default',
+                'Arial, Helvetica, sans-serif',
+                'Courier New, Courier, monospace',
+                'Georgia, serif',
+                'Lucida Sans Unicode, Lucida Grande, sans-serif',
+                'Tahoma, Geneva, sans-serif',
+                'Times New Roman, Times, serif',
+                'Trebuchet MS, Helvetica, sans-serif',
+                'Verdana, Geneva, sans-serif'
+            ],
+            supportAllValues: true
+        },
+        fontSize: {
+            options: [10, 12, 14, 'default', 18, 20, 22, 24, 26, 28, 36],
+            supportAllValues: true
+        },
+        heading: {
+            options: [
+                {model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph'},
+                {model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1'},
+                {model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2'},
+                {model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3'},
+                {model: 'heading4', view: 'h4', title: 'Heading 4', class: 'ck-heading_heading4'},
+                {model: 'heading5', view: 'h5', title: 'Heading 5', class: 'ck-heading_heading5'},
+                {model: 'heading6', view: 'h6', title: 'Heading 6', class: 'ck-heading_heading6'}
+            ]
+        },
+        image: {
+            toolbar: [
+                'imageTextAlternative', 'imageStyle:inline', 'imageStyle:block', 'imageStyle:side', 'linkImage'
+            ]
+        },
+        link: {
+            addTargetToExternalLinks: true,
+            defaultProtocol: 'https://'
+        },
+        list: {
+            properties: {
+                styles: true,
+                startIndex: true,
+                reversed: true
+            }
+        },
+        table: {
+            contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells', 'tableProperties', 'tableCellProperties']
+        },
+        placeholder: 'Nhập nội dung bài viết tại đây...'
+    };
+    ClassicEditor
+        .create(document.querySelector('#add-content'), editorConfig)
+        .then(editor => {
+            addEditor = editor;
+        })
+        .catch(error => {
+            (function(){})('Error initializing add editor:', error);
+        });
+    ClassicEditor
+        .create(document.querySelector('#edit-content'), editorConfig)
+        .then(editor => {
+            editEditor = editor;
+        })
+        .catch(error => {
+            (function(){})('Error initializing edit editor:', error);
+        });
+
+    function syncAddEditor() {
+        try {
+            if (addEditor) {
+                const content = addEditor.getData();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = content;
+                const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                if (textContent.trim().length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Thông báo',
+                        text: 'Vui lòng nhập nội dung bài viết!'
+                    });
+                    return false;
+                }
+                const textarea = document.querySelector('#add-content');
+                if (textarea) {
+                    textarea.value = content;
+                    (function(){})('Add editor synced, content length:', content.length);
+                    return true;
+                } else {
+                    (function(){})('Add content textarea not found');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Không tìm thấy trường nội dung!'
+                    });
+                    return false;
+                }
+            } else {
+                (function(){})('Add editor not initialized');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Editor chưa được khởi tạo!'
+                });
+                return false;
+            }
+        } catch (error) {
+            (function(){})('Error syncing add editor:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Lỗi khi lưu nội dung: ' + error.message
+            });
+            return false;
+        }
+    }
+
+
+
+    function showList() {
+        $('#blog-detail').hide();
+        document.getElementById('activeBlogSection').style.display = 'block';
+        document.getElementById('trashBlogPanel').style.display = 'none';
+        document.getElementById('trashToggleBtn').style.display = 'inline-flex';
+    }
+    function openViewReview(btn) {
+        document.getElementById('vr-blogtitle').innerText = btn.dataset.blogtitle || '---';
+        document.getElementById('vr-username').innerText = btn.dataset.username || '---';
+        document.getElementById('vr-date').innerText = btn.dataset.date || '---';
+        document.getElementById('vr-content').innerText = btn.dataset.content || '---';
+        new bootstrap.Modal(document.getElementById('viewReviewModal')).show();
+    }
+    function syncEditEditor() {
+        try {
+            if (editEditor) {
+                const content = editEditor.getData();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = content;
+                const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                if (textContent.trim().length === 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Thông báo',
+                        text: 'Vui lòng nhập nội dung bài viết!'
+                    });
+                    return false;
+                }
+
+                const textarea = document.querySelector('#edit-content');
+                if (textarea) {
+                    textarea.value = content;
+                    (function(){})('Edit editor synced, content length:', content.length);
+                    return true;
+                } else {
+                    (function(){})('Edit content textarea not found');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Không tìm thấy trường nội dung!'
+                    });
+                    return false;
+                }
+            } else {
+                (function(){})('Edit editor not initialized');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'Editor chưa được khởi tạo!'
+                });
+                return false;
+            }
+        } catch (error) {
+            (function(){})('Error syncing edit editor:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Lỗi',
+                text: 'Lỗi khi lưu nội dung: ' + error.message
+            });
+            return false;
+        }
+    }
+
+    function updatePageInfo() {
+        const info = blogTable.page.info();
+        $('#pageInfo').text((info.page + 1) + ' / ' + info.pages);
+    }
+
+    function updateTrashPageInfo() {
+        const info = $('#tableTrash').DataTable().page.info();
+        $('#trashPageInfo').text((info.page + 1) + ' / ' + info.pages);
+    }
+
+    function showTrashPanel() {
+        $('#blog-detail').hide();
+        document.getElementById('activeBlogSection').style.display = 'none';
+        document.getElementById('trashBlogPanel').style.display = 'block';
+        document.getElementById('trashToggleBtn').style.display = 'none';
+        document.getElementById('backFromTrashBtn').style.display = 'inline-flex';
+    }
+
+    function showActivePanel() {
+        $('#blog-detail').hide();
+        document.getElementById('activeBlogSection').style.display = 'block';
+        document.getElementById('trashBlogPanel').style.display = 'none';
+        document.getElementById('trashToggleBtn').style.display = 'inline-flex';
+        document.getElementById('backFromTrashBtn').style.display = 'none';
+    }
+
+    function confirmRestore(btn) {
+        const id = btn.dataset.id;
+        Swal.fire({
+            title: 'Khôi phục bài viết?',
+            text: 'Bài viết sẽ được chuyển về danh sách quản lý.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Khôi phục',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = baseUrl + '/admin/blog-manage';
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'restore';
+                form.appendChild(actionInput);
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'id';
+                idInput.value = id;
+                form.appendChild(idInput);
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_csrf';
+                csrfInput.value = CSRF_TOKEN;
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const logoutBtn = document.getElementById("logoutBtn");
+        const logoutModal = document.getElementById("logoutModal");
+        const cancelLogout = document.getElementById("cancelLogout");
+        if (logoutBtn && logoutModal && cancelLogout) {
+            logoutBtn.addEventListener("click", () => logoutModal.style.display = "flex");
+            cancelLogout.addEventListener("click", () => logoutModal.style.display = "none");
+        }
+    });
+</script>
+<script>
+    function openEditModal(btn) {
+        document.getElementById("edit-id").value = btn.dataset.id;
+        document.getElementById("edit-title").value = btn.dataset.title;
+        document.getElementById("edit-content").value = btn.dataset.content;
+        document.getElementById("edit-image").value = btn.dataset.image;
+        document.getElementById("edit-product").value = btn.dataset.product;
+        if (editEditor) {
+            editEditor.setData(btn.dataset.content);
+        }
+        const editImgInput = document.getElementById('edit-image');
+        if (editImgInput._triggerPreview) editImgInput._triggerPreview();
+
+        let modal = new bootstrap.Modal(
+            document.getElementById("editBlogModal")
+        );
+        modal.show();
+    }
+
+    function openViewModal(btn) {
+        (function(){})("VIEW", btn.dataset);
+        document.getElementById("view-id").innerText = btn.dataset.id;
+        document.getElementById("view-title").innerText = btn.dataset.title;
+        document.getElementById("view-content").innerHTML = btn.dataset.content;
+        document.getElementById("view-date").innerText = btn.dataset.date;
+        document.getElementById("view-product").innerText = "SP" + btn.dataset.product;
+        document.getElementById("view-views").innerText = btn.dataset.views || 0;
+        document.getElementById("view-likes").innerText = btn.dataset.likes || 0;
+        const img = document.getElementById("view-image");
+        img.src = btn.dataset.image;
+        let modal = new bootstrap.Modal(
+            document.getElementById("viewBlogModal")
+        );
+        modal.show();
+    }
+
+    function confirmDelete(btn) {
+        const id = btn.dataset.id;
+        Swal.fire({
+            title: 'Bạn có chắc chắn?',
+            text: "Bạn sẽ không thể khôi phục lại bài viết này!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Có, xóa nó!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = baseUrl + '/admin/blog-manage';
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'delete';
+                form.appendChild(actionInput);
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'id';
+                idInput.value = id;
+                form.appendChild(idInput);
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '_csrf';
+                csrfInput.value = CSRF_TOKEN;
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        })
+    }
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const menuItems = document.querySelectorAll(".has-submenu .menu-item");
+        menuItems.forEach(item => {
+            item.addEventListener("click", function () {
+                const parent = this.parentElement;
+                parent.classList.toggle("open");
+            });
+        });
+    });
+    setTimeout(() => {
+        const alert = document.getElementById("alertMsg");
+        if (alert) {
+            alert.classList.add("fade");
+            alert.style.opacity = "0";
+            setTimeout(() => alert.remove(), 500);
+        }
+    }, 3000);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function bindImgPreview(inputId, thumbId, errId) {
+        const input = document.getElementById(inputId);
+        const thumb = document.getElementById(thumbId);
+        const errBox = document.getElementById(errId);
+
+        function update() {
+            const url = input.value.trim();
+            if (!url) {
+                thumb.classList.remove('show');
+                errBox.classList.remove('show');
+                return;
+            }
+            thumb.onload = () => {
+                thumb.classList.add('show');
+                errBox.classList.remove('show');
+            };
+            thumb.onerror = () => {
+                thumb.classList.remove('show');
+                errBox.classList.add('show');
+            };
+            thumb.src = url;
+        }
+
+        input.addEventListener('input', update);
+        input._triggerPreview = update;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        bindImgPreview('add-image', 'add-img-thumb', 'add-img-err');
+        bindImgPreview('edit-image', 'edit-img-thumb', 'edit-img-err');
+
+        document.getElementById('addBlogModal').addEventListener('hidden.bs.modal', function () {
+            const thumb = document.getElementById('add-img-thumb');
+            const errBox = document.getElementById('add-img-err');
+            thumb.classList.remove('show');
+            errBox.classList.remove('show');
+            thumb.src = '';
+        });
+    });
+</script>
+<script>
+    let reviewTable;
+
+    function showTab(tab) {
+        if (tab === 'blog') {
+            document.getElementById('panelBlog').style.display = 'block';
+            document.getElementById('panelReview').style.display = 'none';
+            document.getElementById('tabBlog').className = 'btn btn-primary';
+            document.getElementById('tabReview').className = 'btn btn-outline-primary';
+        }
+        if (!reviewTable) {
+            reviewTable = $('#tableReview').DataTable({
+                pageLength: 5,
+                order: [[4, 'desc']],
+                columnDefs: [{targets: [3, 5], orderable: false}],
+                language: {zeroRecords: "Không có bình luận"}
+            });
+
+            $('#searchReviewInput').on('keyup', function () {
+                reviewTable.search(this.value).draw();
+                updateReviewPageInfo();
+            });
+
+            $('#reviewRowsPerPage').on('change', function () {
+                reviewTable.page.len(parseInt($(this).val())).draw();
+                updateReviewPageInfo();
+            });
+
+            $('#reviewSortSelect').on('change', function () {
+                switch ($(this).val()) {
+                    case 'date-desc': reviewTable.order([4, 'desc']).draw(); break;
+                    case 'date-asc':  reviewTable.order([4, 'asc']).draw();  break;
+                    case 'user-asc':  reviewTable.order([2, 'asc']).draw();  break;
+                    case 'user-desc': reviewTable.order([2, 'desc']).draw(); break;
+                    case 'blog-asc':  reviewTable.order([1, 'asc']).draw();  break;
+                    default:          reviewTable.order([4, 'desc']).draw(); break;
+                }
+                updateReviewPageInfo();
+            });
+
+            $('#prevReviewPage').click(() => {
+                reviewTable.page('previous').draw('page');
+                updateReviewPageInfo();
+            });
+            $('#nextReviewPage').click(() => {
+                reviewTable.page('next').draw('page');
+                updateReviewPageInfo();
+            });
+            reviewTable.on('draw', updateReviewPageInfo);
+            updateReviewPageInfo();
+        }
+
+        else {
+            document.getElementById('panelBlog').style.display = 'none';
+            document.getElementById('panelReview').style.display = 'block';
+            document.getElementById('tabBlog').className = 'btn btn-outline-primary';
+            document.getElementById('tabReview').className = 'btn btn-primary';
+            if (!reviewTable) {
+                reviewTable = $('#tableReview').DataTable({
+                    pageLength: 5,
+                    columnDefs: [{targets: [3, 5], orderable: false}],
+                    language: {zeroRecords: "Không có bình luận"}
+                });
+                $('#searchReviewInput').on('keyup', function () {
+                    reviewTable.search(this.value).draw();
+                    updateReviewPageInfo();
+                });
+                $('#prevReviewPage').click(() => {
+                    reviewTable.page('previous').draw('page');
+                    updateReviewPageInfo();
+                });
+                $('#nextReviewPage').click(() => {
+                    reviewTable.page('next').draw('page');
+                    updateReviewPageInfo();
+                });
+                reviewTable.on('draw', updateReviewPageInfo);
+                updateReviewPageInfo();
+            }
+        }
+    }
+
+    function updateReviewPageInfo() {
+        const info = reviewTable.page.info();
+        $('#reviewPageInfo').text((info.page + 1) + ' / ' + info.pages);
+    }
+
+    function confirmDeleteReview(btn) {
+        const id = btn.dataset.id;
+        Swal.fire({
+            title: 'Xóa bình luận?',
+            text: 'Bình luận này sẽ bị xóa vĩnh viễn!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        }).then(result => {
+            if (result.isConfirmed) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = baseUrl + '/admin/blog-manage';
+                const a = document.createElement('input');
+                a.type = 'hidden'; a.name = 'action'; a.value = 'delete_review';
+                const i = document.createElement('input');
+                i.type = 'hidden'; i.name = 'id'; i.value = id;
+                form.appendChild(a);
+                form.appendChild(i);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+</script>
+<script>
+    window.showTrashPanel = function() {
+        const detail = document.getElementById('blog-detail');
+        const activeSection = document.getElementById('activeBlogSection');
+        const trashSection = document.getElementById('trashBlogPanel');
+        const toggleBtn = document.getElementById('trashToggleBtn');
+        const backBtn = document.getElementById('backFromTrashBtn');
+        if (detail) detail.style.display = 'none';
+        if (activeSection) activeSection.style.display = 'none';
+        if (trashSection) trashSection.style.display = 'block';
+        if (toggleBtn) toggleBtn.style.display = 'none';
+        if (backBtn) backBtn.style.display = 'inline-flex';
+    };
+    window.showActivePanel = function() {
+        const detail = document.getElementById('blog-detail');
+        const activeSection = document.getElementById('activeBlogSection');
+        const trashSection = document.getElementById('trashBlogPanel');
+        const toggleBtn = document.getElementById('trashToggleBtn');
+        const backBtn = document.getElementById('backFromTrashBtn');
+        if (detail) detail.style.display = 'none';
+        if (activeSection) activeSection.style.display = 'block';
+        if (trashSection) trashSection.style.display = 'none';
+        if (toggleBtn) toggleBtn.style.display = 'inline-flex';
+        if (backBtn) backBtn.style.display = 'none';
+    };
+    document.addEventListener('DOMContentLoaded', function() {
+        const trashToggleBtn = document.getElementById('trashToggleBtn');
+        if (trashToggleBtn) {
+            trashToggleBtn.removeAttribute('onclick');
+            trashToggleBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                window.showTrashPanel();
+            });
+        }
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('showTrash') === 'true') {
+            window.showTrashPanel();
+        }
+    });
+</script>
+</html>

@@ -1,0 +1,457 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang Quản Trị - SkyDrone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/stylesheets/admin/dashboard.css">
+</head>
+<body>
+<header class="main-header">
+    <div class="logo">
+        <img src="${pageContext.request.contextPath}/image/logoo2.png" alt="Logo">
+        <h2>SkyDrone Admin</h2>
+    </div>
+    <div class="header-right">
+        <a href="${pageContext.request.contextPath}/admin/profile"
+           class="text-decoration-none text-while">
+            <div class="thong-tin-admin d-flex align-items-center gap-2">
+                <i class="bi bi-person-circle fs-4"></i>
+                <span class="fw-semibold">${sessionScope.user.fullName}</span>
+            </div>
+        </a>
+        <button class="logout-btn" id="logoutBtn" title="Đăng xuất">
+            <i class="bi bi-box-arrow-right"></i>
+        </button>
+    </div>
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <p>Bạn có chắc muốn đăng xuất không?</p>
+            <div class="logout-actions">
+                <a href="${pageContext.request.contextPath}/home">
+                    <button id="confirmLogout" class="confirm">Có</button>
+                </a>
+                <button id="cancelLogout" class="cancel">Không</button>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="layout">
+    <jsp:include page="sidebar.jsp">
+        <jsp:param name="activePage" value="dashboard"/>
+    </jsp:include>
+    <main class="main-content">
+        <div class="stats">
+            <div class="card-stat stat-blue">
+                <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+                <div class="stat-info">
+                    <h6>Tổng khách hàng</h6>
+                    <div class="value">
+                        <fmt:formatNumber value="${totalUsers}" type="number"/>
+                    </div>
+                    <small>
+                        <c:choose>
+                            <c:when test="${userGrowthRate >= 0}">
+                                +
+                                <fmt:formatNumber value="${userGrowthRate}" maxFractionDigits="1"/>%
+                                so với tuần trước
+                            </c:when>
+                            <c:otherwise>
+                                <fmt:formatNumber value="${userGrowthRate}" maxFractionDigits="1"/>%
+                                so với tuần trước
+                            </c:otherwise>
+                        </c:choose>
+                    </small>
+                </div>
+            </div>
+            <div class="card-stat stat-green">
+                <div class="stat-icon"><i class="bi bi-box-seam"></i></div>
+                <div class="stat-info">
+                    <h6>Tổng sản phẩm</h6>
+                    <div class="value">
+                        <fmt:formatNumber value="${totalProducts}" type="number"/>
+                    </div>
+                    <small>
+                        <fmt:formatNumber value="${totalCategories}" type="number"/> danh mục
+                    </small>
+                </div>
+            </div>
+            <div class="card-stat stat-orange">
+                <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+                <div class="stat-info">
+                    <h6>Tổng đơn hàng</h6>
+                    <div class="value">
+                        <fmt:formatNumber value="${totalOrders}" type="number"/>
+                    </div>
+                    <small>
+                        Đang xử lý:
+                        <fmt:formatNumber value="${processingOrders}" type="number"/>
+                    </small>
+                </div>
+            </div>
+            <div class="card-stat stat-purple">
+                <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+                <div class="stat-info">
+                    <h6>Doanh thu (tháng)</h6>
+                    <div class="value">
+                        <fmt:formatNumber value="${monthlyRevenue}" type="number"/> VNĐ
+                    </div>
+                    <small class="d-block">
+                        Mục tiêu:
+                        <fmt:formatNumber value="${monthlyTarget}" type="number"/> VNĐ
+                    </small>
+                    <c:choose>
+                        <c:when test="${revenueGrowthRate >= 0}">
+                            <small class="d-block mt-1" style="color: #4ade80; font-weight: 600;">
+                                <i class="bi bi-arrow-up-short"></i> +<fmt:formatNumber value="${revenueGrowthRate}" maxFractionDigits="1"/>% so với tháng trước
+                            </small>
+                        </c:when>
+                        <c:otherwise>
+                            <small class="d-block mt-1" style="color: #f87171; font-weight: 600;">
+                                <i class="bi bi-arrow-down-short"></i> <fmt:formatNumber value="${revenueGrowthRate}" maxFractionDigits="1"/>% so với tháng trước
+                            </small>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+        </div>
+        <div class="card-panel">
+            <div class="panel-title">
+                <h6>Biểu đồ doanh thu</h6>
+                <small style="color:#6b7280">30 ngày gần nhất</small>
+            </div>
+            <canvas id="salesChart" height="100"></canvas>
+        </div>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card-panel h-100 mb-0">
+                    <div class="panel-title">
+                        <h6>Khách hàng mới</h6>
+                        <small style="color:#6b7280">7 ngày gần nhất</small>
+                    </div>
+                    <table id="customerTable" class="table table-striped table-hover align-middle">
+                        <thead class="table-primary">
+                        <tr>
+                            <th>Tên</th>
+                            <th>Điện thoại</th>
+                            <th>Ngày đăng ký</th>
+                        </tr>
+                        </thead>
+                        <jsp:useBean id="now" class="java.util.Date"/>
+                        <tbody>
+                        <c:forEach var="u" items="${newUsers}">
+                            <tr>
+                                <td>${u.fullName}</td>
+                                <td>${u.phoneNumber}</td>
+                                <td>
+                                    <c:set var="days"
+                                           value="${Math.floor((now.time - u.createdAt.time) / (1000*60*60*24))}"/>
+                                    <c:set var="days" value="${days < 0 ? 0 : days}"/>
+                                    <c:choose>
+                                        <c:when test="${days == 0}">
+                                            Hôm nay
+                                        </c:when>
+                                        <c:when test="${days == 1}">
+                                            Hôm qua
+                                        </c:when>
+                                        <c:otherwise>
+                                            ${days} ngày trước
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+                            </tr>
+                        </c:forEach>
+                        <c:if test="${empty newUsers}">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">
+                                    Không có khách hàng mới
+                                </td>
+                            </tr>
+                        </c:if>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card-panel h-100 mb-0">
+                    <div class="panel-title">
+                        <h6>Top 5 Sản phẩm bán chạy nhất</h6>
+                        <small style="color:#6b7280">30 ngày gần nhất</small>
+                    </div>
+                    <table id="topSellingTable" class="table table-striped table-hover align-middle">
+                        <thead class="table-primary">
+                        <tr>
+                            <th>Tên sản phẩm</th>
+                            <th class="text-center">Đã bán</th>
+                            <th class="text-end">Doanh thu</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <c:forEach var="p" items="${topSellingProducts}">
+                            <tr>
+                                <td>${p.productName}</td>
+                                <td class="text-center fw-bold">${p.totalSold}</td>
+                                <td class="text-end text-success fw-semibold">
+                                    <fmt:formatNumber value="${p.totalRevenue}" type="number"/> VNĐ
+                                </td>
+                            </tr>
+                        </c:forEach>
+                        <c:if test="${empty topSellingProducts}">
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">
+                                    Chưa có sản phẩm bán chạy
+                                </td>
+                            </tr>
+                        </c:if>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="card-panel">
+            <div class="panel-title text-danger">
+                <h6><i class="bi bi-exclamation-triangle-fill"></i> Cảnh báo hết hàng</h6>
+                <small style="color:#6b7280">Sản phẩm dưới mức tối thiểu</small>
+            </div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table id="lowStockTable" class="table table-striped table-hover align-middle">
+                    <thead class="table-danger" style="position: sticky; top: 0; z-index: 1;">
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th>Hiện có</th>
+                        <th>Mức tối thiểu</th>
+                        <th class="text-center">Hành động</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <c:forEach var="p" items="${lowStockProducts}">
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <c:set var="imgUrl" value="${p.imageUrl}" />
+                                <c:choose>
+                                    <c:when test="${not empty imgUrl}">
+                                        <c:set var="finalImg">
+                                            <c:choose>
+                                                <c:when test="${imgUrl.startsWith('http') || imgUrl.startsWith('/')}">
+                                                    ${imgUrl}
+                                                </c:when>
+                                                <c:otherwise>
+                                                    ${pageContext.request.contextPath}/${imgUrl}
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </c:set>
+                                    </c:when>
+                                    <c:otherwise>
+                                        <c:set var="finalImg" value="${pageContext.request.contextPath}/image/logoTCN.png" />
+                                    </c:otherwise>
+                                </c:choose>
+                                <img src="${finalImg}" 
+                                     alt="${p.productName}" 
+                                     onerror="this.src='${pageContext.request.contextPath}/image/logoTCN.png'; this.onerror=null;"
+                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #f8f9fa;">
+                                    <span class="text-truncate" style="max-width: 250px;">${p.productName}</span>
+                                </div>
+                            </td>
+                            <td class="fw-bold text-danger">${p.quantity}</td>
+                            <td>${p.minStock}</td>
+                            <td class="text-center">
+                                <a href="${pageContext.request.contextPath}/admin/inventory-manage?search=${p.productName}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-plus-circle"></i> Nhập hàng
+                                </a>
+                            </td>
+                        </tr>
+                    </c:forEach>
+                    <c:if test="${empty lowStockProducts}">
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="bi bi-check-circle text-success fs-2 d-block mb-2"></i>
+                                Không có cảnh báo nào
+                            </td>
+                        </tr>
+                    </c:if>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-panel">
+            <div class="panel-title">
+                <h6>Trạng thái đơn hàng</h6>
+                <small style="color:#6b7280">Tổng quan</small>
+            </div>
+            <table id="orderTable" class="table table-striped table-hover align-middle">
+                <thead class="table-primary">
+                <tr>
+                    <th>Mã ĐH</th>
+                    <th>Khách hàng</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Tổng tiền</th>
+                </tr>
+                </thead>
+                <tbody>
+                <c:forEach var="o" items="${recentOrders}">
+                    <tr>
+                        <td>#${o.shippingCode}</td>
+                        <td>${o.customerName}</td>
+                        <td>
+                                                <span class="badge-status ${o.statusClass}">
+                                                        ${o.statusLabel}
+                                                </span>
+                        </td>
+                        <td class="text-end">
+                            <fmt:formatNumber value="${o.totalPrice}" type="number"/> VNĐ
+                        </td>
+                    </tr>
+                </c:forEach>
+                <c:if test="${empty recentOrders}">
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">
+                            Chưa có đơn hàng mới
+                        </td>
+                    </tr>
+                </c:if>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+<c:if test="${not empty revenueLabels and not empty revenueValues}">
+    <script>
+        const CSRF_TOKEN = "${sessionScope.CSRF_TOKEN}";
+        const revenueLabels = [
+            <c:forEach var="d" items="${revenueLabels}" varStatus="s">
+            "${d}"<c:if test="${!s.last}">, </c:if>
+            </c:forEach>
+        ];
+        const revenueData = [
+            <c:forEach var="v" items="${revenueValues}" varStatus="s">
+            ${v}<c:if test="${!s.last}">, </c:if>
+            </c:forEach>
+        ];
+    </script>
+</c:if>
+<script>
+    $(document).ready(function () {
+        if (typeof revenueLabels === 'undefined'
+            || typeof revenueData === 'undefined'
+            || revenueLabels.length === 0) {
+            return;
+        }
+        const ctx = document.getElementById('salesChart');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: revenueLabels,
+                datasets: [{
+                    label: 'Doanh thu (VNĐ)',
+                    data: revenueData,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {display: true}
+                }
+            }
+        });
+    });
+</script>
+<script>
+    $(document).ready(function () {
+        let customerTable = $('#customerTable').DataTable({
+            paging: true,        // Phân trang
+            pageLength: 5,       // Số dòng mỗi trang
+            lengthChange: false, // Ẩn select số lượng
+            searching: true,     // Bật tìm kiếm
+            ordering: true,      // Cho phép sắp xếp
+            info: false,         // Ẩn thông tin số trang
+            language: {
+                search: "Tìm kiếm:",
+                zeroRecords: "Không tìm thấy kết quả",
+                paginate: {
+                    previous: "Trước",
+                    next: "Sau"
+                }
+            },
+            columnDefs: [
+                {orderable: false, targets: []}
+            ]
+        });
+        let topSellingTable = $('#topSellingTable').DataTable({
+            paging: true,
+            pageLength: 5,
+            lengthChange: false,
+            searching: true,
+            ordering: true,
+            info: false,
+            language: {
+                search: "Tìm kiếm:",
+                zeroRecords: "Không tìm thấy kết quả",
+                paginate: {
+                    previous: "Trước",
+                    next: "Sau"
+                }
+            }
+        });
+        let orderTable = $('#orderTable').DataTable({
+            paging: true,
+            pageLength: 5,
+            lengthChange: false,
+            searching: true,
+            ordering: true,
+            info: false,
+            language: {
+                search: "Tìm kiếm:",
+                zeroRecords: "Không tìm thấy kết quả",
+                paginate: {
+                    previous: "Trước",
+                    next: "Sau"
+                }
+            },
+            columnDefs: [
+                {orderable: false, targets: 2}
+            ]
+        });
+        let lowStockTable = $('#lowStockTable').DataTable({
+            paging: true,
+            pageLength: 5,
+            lengthChange: false,
+            searching: true,
+            ordering: true,
+            info: false,
+            language: {
+                search: "Tìm kiếm:",
+                zeroRecords: "Không tìm thấy kết quả",
+                paginate: {
+                    previous: "Trước",
+                    next: "Sau"
+                }
+            }
+        });
+    });
+</script>
+<script>
+    $("#logoutBtn").on("click", function () {
+        $("#logoutModal").css("display", "flex");
+    });
+    $("#cancelLogout").on("click", function () {
+        $("#logoutModal").hide();
+    });
+</script>
+</body>
+</html>

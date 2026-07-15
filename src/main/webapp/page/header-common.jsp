@@ -1,0 +1,950 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<meta charset="UTF-8">
+<title>SkyDrone Header</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/stylesheets/header.css?v=3">
+<meta name="_csrf" content="${sessionScope.CSRF_TOKEN}">
+<meta name="_csrf_header" content="X-CSRF-Token">
+<c:set var="currentPage" value="${pageContext.request.requestURI}"/>
+<div class="header-bg">
+    <div class="header-wrapper">
+        <header class="top-header">
+            <a href="${pageContext.request.contextPath}/home">
+                <div class="logo">
+                    <img src="${pageContext.request.contextPath}/image/logoo2.png" alt="Logo">
+                    <h2>SkyDrone</h2>
+                </div>
+            </a>
+            <form action="${pageContext.request.contextPath}/Searching" method="get"
+                  class="search-bar position-relative">
+                <i class="bi bi-search" id="searchBtn" style="cursor: pointer;"></i>
+                <input id="searchInput" name="keyword" type="text" placeholder="Tìm kiếm drone, flycam..."
+                       autocomplete="off" value="${keyword != null ? keyword : ''}" style="padding-right: 35px;">
+                <i class="bi bi-x-circle-fill" id="clearSearchBtn"
+                   style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; display: none; color: #adb5bd;"
+                   title="Xóa nội dung tìm kiếm"></i>
+                <ul id="suggestList" class="list-group position-absolute w-100 shadow-sm"
+                    style="top: 100%; left: 0; z-index: 1000; display: none;">
+                </ul>
+            </form>
+            <div class="header-actions">
+                <a href="${pageContext.request.contextPath}/wishlist">
+                    <div class="icon-btn ${currentPage.contains('/wishlist') ? 'active' : ''}"
+                         title="Yêu thích">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-heart"></i>
+                        </div>
+                        <span>Yêu thích</span>
+                    </div>
+                </a>
+                <a href="${pageContext.request.contextPath}/page/shoppingcart.jsp">
+                    <div class="icon-btn ${currentPage.contains('shoppingcart') ? 'active' : ''}"
+                         title="Giỏ hàng">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-cart3"></i>
+                            <span class="cart-badge badge rounded-pill bg-danger" id="cartBadge"
+                                  style="${(empty unviewedCartCount or unviewedCartCount == 0) ? 'display: none !important;' : 'display: flex !important;'}">
+                                ${not empty unviewedCartCount ? unviewedCartCount : '0'}
+                            </span>
+                        </div>
+                        <span>Giỏ hàng</span>
+                    </div>
+                </a>
+                <a href="${pageContext.request.contextPath}/personal">
+                    <div class="icon-btn ${currentPage.contains('/personal') ? 'active' : ''}"
+                         title="${not empty user ? user.username : 'Tài khoản'}">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-person-circle"></i>
+                        </div>
+                        <span>${not empty user ? user.username : 'Tài khoản'}</span>
+                    </div>
+                </a>
+            </div>
+        </header>
+    </div>
+</div>
+<div class="menu-bg">
+    <div class="header-wrapper">
+        <nav class="main-nav">
+            <a href="${pageContext.request.contextPath}/home">
+                <button class="nav-item ${currentPage.endsWith('homepage.jsp') ? 'active' : ''}">
+                    <i class="bi bi-house-door"></i>Trang chủ
+                </button>
+            </a>
+            <button class="nav-item ${currentPage.contains('/category') ? 'active' : ''}" id="btnDanhMuc">
+                <i class="bi bi-grid"></i>Danh mục<i class="bi bi-caret-down-fill ms-1"></i>
+            </button>
+            <a href="${pageContext.request.contextPath}/promotion">
+                <button class="nav-item ${currentPage.endsWith('promotion.jsp') ? 'active' : ''}">
+                    <i class="bi bi-gift"></i>Khuyến mãi
+                </button>
+            </a>
+            <a href="${pageContext.request.contextPath}/page/warranty.jsp">
+                <button class="nav-item ${currentPage.endsWith('warranty.jsp') ? 'active' : ''}">
+                    <i class="bi bi-tools"></i>Bảo hành
+                </button>
+            </a>
+            <a href="${pageContext.request.contextPath}/page/payment-policy.jsp">
+                <button class="nav-item ${currentPage.endsWith('payment-policy.jsp') ? 'active' : ''}">
+                    <i class="bi bi-credit-card"></i>Thanh toán
+                </button>
+            </a>
+            <a href="${pageContext.request.contextPath}/page/support.jsp">
+                <button class="nav-item ${currentPage.endsWith('support.jsp') ? 'active' : ''}">
+                    <i class="bi bi-headset"></i>Hỗ trợ
+                </button>
+            </a>
+            <a href="${pageContext.request.contextPath}/blog">
+                <button class="nav-item ${currentPage.contains('/blog') ? 'active' : ''}">
+                    <i class="bi bi-journal-text"></i>Bài viết
+                </button>
+            </a>
+            <c:if test="${not empty user and (user.roleId == 1 or user.roleId == 3 or user.roleId == 4 or user.roleId == 5)}">
+                <a href="${pageContext.request.contextPath}/admin/dashboard">
+                    <button class="nav-item ${currentPage.contains('/vn.edu.hcmuaf.fit.nhom7_thuctaplaptrinhweb_flycams.controller.admin') ? 'active' : ''}">
+                        <i class="bi bi-shield-lock"></i>Quản lý Admin
+                    </button>
+                </a>
+            </c:if>
+        </nav>
+    </div>
+    <div class="menu-left-1" id="menuLeft">
+        <ul>
+            <c:forEach items="${headerCategories}" var="cat">
+                <li>
+                    <a href="${pageContext.request.contextPath}/Category?id=${cat.id}">
+                        <img src="${pageContext.request.contextPath}/${cat.image}" class="menu-icon">
+                            ${cat.categoryName} (${cat.productCount})
+                    </a>
+                </li>
+            </c:forEach>
+        </ul>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const btnDanhMuc = document.getElementById('btnDanhMuc');
+    const menuLeft = document.getElementById('menuLeft');
+    btnDanhMuc.addEventListener('click', () => {
+        menuLeft.classList.toggle('show');
+    });
+    //ẩn menu khi click ra ngoài
+    document.addEventListener('click', (e) => {
+        if (!menuLeft.contains(e.target) && !btnDanhMuc.contains(e.target)) {
+            menuLeft.classList.remove('show');
+        }
+    });
+</script>
+<script>
+    const contextPath = '${pageContext.request.contextPath}';
+    const searchInput = document.getElementById("searchInput");
+    const suggestList = document.getElementById("suggestList");
+    let debounceTimer = null;
+    //QUẢN LÝ LỊCH SỬ TÌM KIẾM
+    const SearchHistory = {
+        maxItems: 10,
+        storageKey: 'skydrone_search_history',
+        get: function () {
+            try {
+                const history = localStorage.getItem(this.storageKey);
+                return history ? JSON.parse(history) : [];
+            } catch (e) {
+                return [];
+            }
+        },
+        save: function (history) {
+            try {
+                localStorage.setItem(this.storageKey, JSON.stringify(history));
+            } catch (e) {
+                (function(){})('Không thể lưu lịch sử tìm kiếm', e);
+            }
+        },
+        add: function (keyword) {
+            keyword = keyword.trim();
+            if (!keyword) return;
+            let history = this.get();
+            history = history.filter(function (item) {
+                return item.toLowerCase() !== keyword.toLowerCase();
+            });
+            history.unshift(keyword);
+            if (history.length > this.maxItems) {
+                history = history.slice(0, this.maxItems);
+            }
+            this.save(history);
+        },
+        remove: function (keyword) {
+            let history = this.get();
+            history = history.filter(function (item) {
+                return item !== keyword;
+            });
+            this.save(history);
+        },
+        clear: function () {
+            localStorage.removeItem(this.storageKey);
+        }
+    };
+    const clearSearchBtn = document.getElementById("clearSearchBtn");
+
+    function updateClearBtnVisibility() {
+        if (searchInput.value.length > 0) {
+            clearSearchBtn.style.display = "block";
+        } else {
+            clearSearchBtn.style.display = "none";
+        }
+    }
+
+    updateClearBtnVisibility();
+    clearSearchBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        searchInput.value = "";
+        updateClearBtnVisibility();
+        searchInput.focus();
+        showSearchHistory();
+    });
+    searchInput.addEventListener("input", function () {
+        updateClearBtnVisibility();
+        triggerSuggest();
+    });
+    searchInput.addEventListener("focus", function () {
+        const keyword = searchInput.value.trim();
+        if (keyword === "") {
+            showSearchHistory();
+        } else {
+            triggerSuggest();
+        }
+    });
+
+    //HIỂN THỊ LỊCH SỬ TÌM KIẾM
+    function showSearchHistory() {
+        const history = SearchHistory.get();
+        if (history.length === 0) {
+            suggestList.style.display = "none";
+            return;
+        }
+        suggestList.innerHTML = "";
+        const header = document.createElement("div");
+        header.className = "suggest-header";
+        header.innerHTML = '<span>Lịch sử tìm kiếm</span><span class="clear-history" onclick="clearAllHistory()">Xóa tất cả</span>';
+        suggestList.appendChild(header);
+        history.forEach(function (keyword) {
+            const li = document.createElement("li");
+            li.className = "list-group-item list-group-item-action history-item";
+            li.innerHTML = '<span style="flex: 1;">' + escapeHtml(keyword) + '</span><i class="bi bi-x-lg delete-history-item" onclick="deleteHistoryItem(event, \'' + escapeHtml(keyword) + '\')"></i>';
+            li.onclick = function (e) {
+                if (!e.target.classList.contains('delete-history-item')) {
+                    searchInput.value = keyword;
+                    SearchHistory.add(keyword);
+                    searchInput.form.submit();
+                }
+            };
+            suggestList.appendChild(li);
+        });
+        suggestList.style.display = "block";
+    }
+
+    //TÌM KIẾM VÀ GỢI Ý
+    function triggerSuggest() {
+        const keyword = searchInput.value.trim();
+        if (keyword.length === 0) {
+            showSearchHistory();
+            return;
+        }
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+            fetch(contextPath + "/search-suggestion?keyword=" + encodeURIComponent(keyword))
+                .then(function (res) {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.json();
+                })
+                .then(function (data) {
+                    displaySuggestions(data, keyword);
+                })
+                .catch(function (err) {
+                    (function(){})('Lỗi khi tìm kiếm:', err);
+                    suggestList.innerHTML = '<div class="suggest-empty">Không thể tải gợi ý</div>';
+                    suggestList.style.display = "block";
+                });
+        }, 200);
+    }
+
+    //HIỂN THỊ GỢI Ý
+    function displaySuggestions(data, keyword) {
+        suggestList.innerHTML = "";
+        const history = SearchHistory.get();
+        const hasHistory = history.length > 0;
+        const hasSuggestions = data && data.length > 0;
+        if (!hasHistory && !hasSuggestions) {
+            suggestList.innerHTML = '<div class="suggest-empty">Không tìm thấy kết quả</div>';
+            suggestList.style.display = "block";
+            return;
+        }
+        if (hasHistory) {
+            const relatedHistory = history.filter(function (item) {
+                return item.toLowerCase().includes(keyword.toLowerCase());
+            });
+            if (relatedHistory.length > 0) {
+                const historyHeader = document.createElement("div");
+                historyHeader.className = "suggest-header";
+                historyHeader.innerHTML = '<span>Lịch sử tìm kiếm</span>';
+                suggestList.appendChild(historyHeader);
+                relatedHistory.slice(0, 3).forEach(function (item) {
+                    const li = document.createElement("li");
+                    li.className = "list-group-item list-group-item-action history-item";
+                    li.innerHTML = '<span style="flex: 1;">' + highlightKeyword(item, keyword) + '</span><i class="bi bi-x-lg delete-history-item" onclick="deleteHistoryItem(event, \'' + escapeHtml(item) + '\')"></i>';
+                    li.onclick = function (e) {
+                        if (!e.target.classList.contains('delete-history-item')) {
+                            searchInput.value = item;
+                            SearchHistory.add(item);
+                            searchInput.form.submit();
+                        }
+                    };
+                    suggestList.appendChild(li);
+                });
+                if (hasSuggestions) {
+                    const divider = document.createElement("div");
+                    divider.className = "suggest-divider";
+                    suggestList.appendChild(divider);
+                }
+            }
+        }
+        if (hasSuggestions) {
+            const suggestionHeader = document.createElement("div");
+            suggestionHeader.className = "suggest-header";
+            suggestionHeader.innerHTML = '<span>Gợi ý sản phẩm</span>';
+            suggestList.appendChild(suggestionHeader);
+            data.forEach(function (item) {
+                const li = document.createElement("li");
+                li.className = "list-group-item list-group-item-action search-item";
+                let imgSrc;
+                if (!item.image) {
+                    imgSrc = contextPath + '/image/logoo2.png';
+                } else if (item.image.startsWith('http://') || item.image.startsWith('https://')) {
+                    imgSrc = item.image;
+                } else {
+                    imgSrc = contextPath + '/' + item.image;
+                }
+                li.innerHTML =
+                    '<img src="' + imgSrc + '" alt="" class="suggest-product-img" style="width:24px;height:24px;min-width:24px;max-width:24px;object-fit:cover;border-radius:4px;border:1px solid #ddd;margin-right:8px;flex-shrink:0;" onerror="this.src=\'' + contextPath + '/image/logoo2.png\'">' +
+                    '<span class="suggest-product-name">' + highlightKeyword(item.name, keyword) + '</span>';
+                li.onclick = function () {
+                    SearchHistory.add(item.name);
+                    window.location.href = contextPath + "/product-detail?id=" + item.id;
+                };
+                suggestList.appendChild(li);
+            });
+        }
+        suggestList.style.display = "block";
+    }
+
+    //XÓA LỊCH SỬ
+    function deleteHistoryItem(event, keyword) {
+        event.stopPropagation();
+        SearchHistory.remove(keyword);
+        if (searchInput.value.trim() === "") {
+            showSearchHistory();
+        } else {
+            triggerSuggest();
+        }
+    }
+
+    function clearAllHistory() {
+        suggestList.style.display = "none";
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Xác nhận xóa',
+                text: 'Bạn có chắc muốn xóa toàn bộ lịch sử tìm kiếm?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đồng ý, xóa!',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    SearchHistory.clear();
+                    showSearchHistory();
+                } else {
+                    showSearchHistory();
+                }
+            });
+        } else {
+            if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử tìm kiếm?')) {
+                SearchHistory.clear();
+                showSearchHistory();
+            } else {
+                showSearchHistory();
+            }
+        }
+    }
+
+    //LƯU LỊCH SỬ KHI SUBMIT
+    searchInput.form.addEventListener('submit', function (e) {
+        const keyword = searchInput.value.trim();
+        if (keyword) {
+            SearchHistory.add(keyword);
+        }
+    });
+    //ẨN SUGGEST KHI CLICK RA NGOÀI
+    document.addEventListener("click", function (e) {
+        if (!e.target.closest(".search-bar")) {
+            suggestList.style.display = "none";
+        }
+    });
+
+    function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function highlightKeyword(text, keyword) {
+        if (!keyword) return escapeHtml(text);
+        const escapedKeyword = keyword.replace(/[.*+?^$()|[\]\\]/g, "\\$&");
+        try {
+            const regex = new RegExp("(" + escapedKeyword + ")", "gi");
+            return escapeHtml(text).replace(regex, "<strong>$1</strong>");
+        } catch (e) {
+            (function(){})("Highlight error:", e);
+            return escapeHtml(text);
+        }
+    }
+
+    //CẬP NHẬT BADGE GIỎ HÀNG TOÀN CỤC
+    function updateCartBadge(newCount) {
+        const cartBadge = document.getElementById('cartBadge');
+        if (cartBadge) {
+            let count = 0;
+            if (newCount !== undefined) {
+                count = parseInt(newCount);
+            } else {
+                count = (parseInt(cartBadge.textContent.trim()) || 0) + 1;
+            }
+            //cập nhật nội dung số lượng
+            cartBadge.textContent = count;
+            if (count > 0) {
+                cartBadge.style.setProperty('display', 'flex', 'important');
+            } else {
+                cartBadge.style.setProperty('display', 'none', 'important');
+            }
+            //hiệu ứng scale khi cập nhật
+            cartBadge.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+            cartBadge.style.transform = 'scale(1.5)';
+            setTimeout(() => {
+                cartBadge.style.transform = 'scale(1)';
+            }, 300);
+            //hiệu ứng rung icon giỏ hàng
+            const cartBtn = cartBadge.closest('.icon-btn') || cartBadge.closest('a') || cartBadge.closest('.icon-wrapper');
+            if (cartBtn) {
+                cartBtn.classList.add('cart-shaking');
+                setTimeout(() => {
+                    cartBtn.classList.remove('cart-shaking');
+                }, 500);
+            }
+        }
+    }
+
+    //HIỂN THỊ THÔNG BÁO CUSTOM
+    function showNotification(message, type = 'success') {
+        const oldNotification = document.querySelector('.custom-notification');
+        if (oldNotification) oldNotification.remove();
+        const notification = document.createElement('div');
+        notification.className = 'custom-notification ' + type;
+        notification.innerHTML = (type === 'success'
+            ? '<i class="bi bi-check-circle-fill me-2"></i>'
+            : '<i class="bi bi-exclamation-circle-fill me-2"></i>') + message;
+        Object.assign(notification.style, {
+            position: 'fixed',
+            top: '80px',
+            right: '-300px',
+            padding: '12px 20px',
+            borderRadius: '8px',
+            zIndex: '10001',
+            fontWeight: '500',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            transition: 'right 0.3s ease',
+            backgroundColor: type === 'success' ? '#28a745' : '#dc3545',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            minWidth: '250px'
+        });
+        document.body.appendChild(notification);
+        setTimeout(() => notification.style.right = '20px', 10);
+        setTimeout(() => notification.style.right = '-300px', 2500);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    //XỬ LÝ THÊM VÀO GIỎ HÀNG TOÀN CỤC
+    function globallyHandleAddToCart(productId, quantity, sourceImg, btnElement) {
+        if (!productId) return;
+        //1. Chặn người dùng chưa đăng nhập
+        const userLoggedIn = ${not empty user ? 'true' : 'false'};
+        if (!userLoggedIn) {
+            Swal.fire({
+                title: 'Yêu cầu đăng nhập',
+                text: 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Đăng nhập ngay',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = contextPath + '/page/login.jsp';
+                }
+            });
+            return;
+        }
+        //2.Hiệu ứng bay vào giỏ hàng
+        if (sourceImg && sourceImg.src) {
+            const flyingImg = document.createElement('img');
+            flyingImg.src = sourceImg.src;
+            const imgRect = sourceImg.getBoundingClientRect();
+            const cartIcon = document.querySelector('.bi-cart3');
+            const cartRect = cartIcon ? cartIcon.getBoundingClientRect() : {
+                left: window.innerWidth - 100,
+                top: 20,
+                width: 24,
+                height: 24
+            };
+            const targetX = cartRect.left + (cartRect.width / 2);
+            const targetY = cartRect.top + (cartRect.height / 2);
+            //kích thước cố định để nhất quán giữa trang chủ và chi tiết
+            const size = 100;
+            Object.assign(flyingImg.style, {
+                position: 'fixed',
+                zIndex: '100000',
+                width: size + 'px',
+                height: size + 'px',
+                objectFit: 'cover',
+                transition: 'none',
+                pointerEvents: 'none',
+                borderRadius: '50%', //hình tròn phẳng
+                boxShadow: '0 2px 10px rgba(0,0,0,0.1)', //đổ bóng nhẹ
+                border: '2px solid white',
+                left: (imgRect.left + imgRect.width / 2 - size / 2) + 'px',
+                top: (imgRect.top + imgRect.height / 2 - size / 2) + 'px',
+                opacity: '1'
+            });
+            document.body.appendChild(flyingImg);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    Object.assign(flyingImg.style, {
+                        transition: 'all 1.2s cubic-bezier(0.1, 0, 0.3, 1)',
+                        left: (targetX - size / 4) + 'px',
+                        top: (targetY - size / 4) + 'px',
+                        width: '20px',
+                        height: '20px',
+                        opacity: '0.2',
+                        transform: 'scale(0.1) rotate(360deg)' //xoay 1 vòng từ từ
+                    });
+                });
+            });
+            setTimeout(() => flyingImg.remove(), 1300);
+        }
+        //2.gọi AJAX
+        const fetchUrl = contextPath + '/add-cart?productId=' + productId + '&quantity=' + quantity;
+        fetch(fetchUrl, {
+            method: 'GET',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+            .then(res => {
+                if (res.redirected) {
+                    if (confirm('Bạn cần đăng nhập để thêm vào giỏ hàng. Chuyển đến trang đăng nhập?')) {
+                        window.location.href = res.url;
+                    }
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                if (data.success) {
+                    showNotification('Đã thêm vào giỏ hàng!', 'success');
+                    updateCartBadge(data.totalQuantity);
+                } else {
+                    showNotification(data.message || 'Thêm vào giỏ hàng thất bại', 'error');
+                }
+            })
+            .catch(err => {
+                (function(){})('Add cart error:', err);
+                showNotification('Lỗi kết nối server', 'error');
+            });
+    }
+
+    //khởi tạo trạng thái badge ban đầu
+    document.addEventListener('DOMContentLoaded', () => {
+        const cartBadge = document.getElementById('cartBadge');
+        if (cartBadge) {
+            const count = parseInt(cartBadge.textContent.trim()) || 0;
+            if (count <= 0) {
+                cartBadge.style.setProperty('display', 'none', 'important');
+            } else {
+                cartBadge.style.setProperty('display', 'flex', 'important');
+            }
+        }
+    });
+</script>
+<div class="chat-widget" id="chatWidget">
+    <button class="chat-button" id="chatBtn">
+        <i class="bi bi-chat-dots-fill"></i>
+        <div class="unread-badge" id="chatBadgeUnread" style="display: none;">0</div>
+    </button>
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <div class="chat-header-info">
+                <div class="chat-header-avatar">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div>
+                    <h5>Hỗ trợ SkyDrone</h5>
+                    <div class="status-text">
+                        <span class="status-dot"></span>Trực tuyến
+                    </div>
+                </div>
+            </div>
+            <div class="close-chat" id="closeChat">
+                <i class="bi bi-x-lg"></i>
+            </div>
+        </div>
+        <div class="chat-body" id="chatBody">
+        </div>
+        <c:if test="${not empty user}">
+            <div id="adminTypingIndicator" style="display: none; padding: 5px 15px; font-size: 12px; color: #6c757d; font-style: italic; border-top: 1px solid #eee; background: #fafafa;">
+                <div class="spinner-grow spinner-grow-sm text-secondary me-1" role="status" style="width: 0.8rem; height: 0.8rem;"></div>
+                Admin đang gõ...
+            </div>
+            <div id="chatSuggestBox" class="chat-suggest-box" style="display:none; position:absolute; bottom:55px; left:10px; right:10px; max-height:160px; overflow-y:auto; background:#fff; border:1px solid #ddd; border-radius:8px; box-shadow:0 -4px 10px rgba(0,0,0,0.1); z-index:1000;"></div>
+            <div id="chatAttachmentBar" class="chat-attachment-bar" style="display:none; align-items:center; padding:5px 10px; border-top:1px solid #eee; background:#f0f7ff; font-size:12px; color:#0051c6; gap:8px;">
+                <span style="flex:1; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="chatAttachmentName"></span>
+                <i class="bi bi-x-circle-fill" id="chatAttachmentRemove" style="cursor:pointer; color:#dc3545;" title="Xóa đính kèm"></i>
+            </div>
+            <div class="chat-footer" style="display: flex; align-items: center; padding: 10px; border-top: 1px solid #eee;">
+                <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." style="flex: 1;">
+                <button id="sendChat">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </div>
+        </c:if>
+    </div>
+</div>
+<script>
+    (function () {
+        const chatBtn = document.getElementById('chatBtn');
+        const chatWindow = document.getElementById('chatWindow');
+        const closeChat = document.getElementById('closeChat');
+        const chatBody = document.getElementById('chatBody');
+        const chatInput = document.getElementById('chatInput');
+        const sendChat = document.getElementById('sendChat');
+        const unreadBadge = document.getElementById('chatBadgeUnread');
+        const userLoggedIn = ${not empty user};
+        let chatInitialized = false;
+        if (chatBtn) {
+            chatBtn.addEventListener('click', () => {
+                if (!userLoggedIn) {
+                    window.location.href = contextPath + '/page/login.jsp';
+                    return;
+                }
+                chatWindow.classList.toggle('active');
+                if (chatWindow.classList.contains('active') && userLoggedIn && !chatInitialized) {
+                    loadChatHistory();
+                    chatInitialized = true;
+                }
+            });
+        }
+        if (closeChat) {
+            closeChat.addEventListener('click', () => {
+                chatWindow.classList.remove('active');
+            });
+        }
+
+        function formatChatTime(ts) {
+            if (!ts) return '';
+            const d = new Date(ts);
+            return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+        }
+
+        function scrollToBottomChat() {
+            requestAnimationFrame(() => {
+                chatBody.scrollTop = chatBody.scrollHeight;
+            });
+        }
+        window.sendQuickMessage = function(text) {
+            chatInput.value = text;
+            sendMessage();
+        };
+        function loadChatHistory() {
+            if (!userLoggedIn) return;
+            fetch(contextPath + '/chat?action=history&_t=' + new Date().getTime())
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        renderMessages(data.messages);
+                        updateUnreadCount();
+                        const ind = document.getElementById('adminTypingIndicator');
+                        if (ind) {
+                            ind.style.display = data.adminTyping ? 'block' : 'none';
+                        }
+                    }
+                })
+                .catch(err => (function(){})('Chat error:', err));
+        }
+
+        let selectedChatProduct = null;
+        function displayChatSuggestions(data) {
+            const suggestBox = document.getElementById('chatSuggestBox');
+            if (!suggestBox) return;
+            suggestBox.innerHTML = '';
+            if (!data || data.length === 0) {
+                suggestBox.style.display = 'none';
+                return;
+            }
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'chat-suggest-card';
+                Object.assign(card.style, {
+                    display: 'flex',
+                    padding: '8px',
+                    borderBottom: '1px solid #eee',
+                    cursor: 'pointer',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'background 0.2s'
+                });
+                card.addEventListener('mouseenter', () => card.style.background = '#f8f9fa');
+                card.addEventListener('mouseleave', () => card.style.background = '#fff');
+                let imgSrc = item.image ? (item.image.startsWith('http') ? item.image : contextPath + '/' + item.image) : contextPath + '/image/logoo2.png';
+                let formattedPrice = item.price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price) : 'Liên hệ';
+                card.innerHTML = 
+                    '<img src="' + imgSrc + '" style="width:36px; height:36px; object-fit:cover; border-radius:4px; border:1px solid #eee; flex-shrink:0;">' +
+                    '<div style="flex:1; min-width:0; text-align:left;">' +
+                        '<div style="font-weight:600; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#333;">' + escapeHtml(item.name) + '</div>' +
+                        '<div style="font-size:10px; color:#777; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(item.description || '') + '</div>' +
+                        '<div style="font-weight:bold; font-size:11px; color:red;">' + formattedPrice + '</div>' +
+                    '</div>';
+                card.addEventListener('click', () => {
+                    selectProductForChat(item);
+                });
+                suggestBox.appendChild(card);
+            });
+            suggestBox.style.display = 'block';
+        }
+        function selectProductForChat(item) {
+            selectedChatProduct = item;
+            const attachmentBar = document.getElementById('chatAttachmentBar');
+            const attachmentName = document.getElementById('chatAttachmentName');
+            const suggestBox = document.getElementById('chatSuggestBox');
+            if (attachmentBar && attachmentName) {
+                attachmentName.textContent = 'Đính kèm sản phẩm: ' + item.name;
+                attachmentBar.style.display = 'flex';
+            }
+            if (suggestBox) {
+                suggestBox.style.display = 'none';
+            }
+            if (chatInput) {
+                chatInput.focus();
+            }
+        }
+        const removeAttachmentBtn = document.getElementById('chatAttachmentRemove');
+        if (removeAttachmentBtn) {
+            removeAttachmentBtn.addEventListener('click', () => {
+                selectedChatProduct = null;
+                const attachmentBar = document.getElementById('chatAttachmentBar');
+                if (attachmentBar) attachmentBar.style.display = 'none';
+            });
+        }
+        function renderMessages(messages) {
+            chatBody.innerHTML = '';
+            if (!messages || messages.length === 0) {
+                chatBody.innerHTML = '<div class="text-center p-3 text-muted"><p>Chào bạn! SkyDrone có thể giúp gì cho bạn?</p></div>' +
+                    '<div class="quick-replies-container text-center mt-3">' +
+                    '<button class="btn btn-sm btn-outline-primary m-1 rounded-pill" onclick="sendQuickMessage(\'Tư vấn giúp tôi sản phẩm mới nhất\')">Tư vấn sản phẩm mới</button>' +
+                    '<button class="btn btn-sm btn-outline-primary m-1 rounded-pill" onclick="sendQuickMessage(\'Phí giao hàng là bao nhiêu?\')">Phí giao hàng?</button>' +
+                    '<button class="btn btn-sm btn-outline-primary m-1 rounded-pill" onclick="sendQuickMessage(\'Chính sách bảo hành thế nào?\')">Chính sách bảo hành?</button>' +
+                    '</div>';
+                return;
+            }
+            let lastUserMsgIndex = -1;
+            for (let i = messages.length - 1; i >= 0; i--) {
+                if (messages[i].sendUserId == '${user.id}') {
+                    lastUserMsgIndex = i;
+                    break;
+                }
+            }
+            messages.forEach((m, index) => {
+                const isUser = m.sendUserId == '${user.id}';
+                const div = document.createElement('div');
+                div.className = 'message ' + (isUser ? 'user' : 'admin');
+                let contentHtml = m.content || '';
+                let productCardHtml = '';
+                if (contentHtml.includes('[PRODUCT_CARD]') && contentHtml.includes('[/PRODUCT_CARD]')) {
+                    const startIdx = contentHtml.indexOf('[PRODUCT_CARD]');
+                    const endIdx = contentHtml.indexOf('[/PRODUCT_CARD]');
+                    const jsonStr = contentHtml.substring(startIdx + 14, endIdx);
+                    contentHtml = contentHtml.substring(endIdx + 15).trim();
+                    try {
+                        const prod = JSON.parse(jsonStr);
+                        let imgSrc = prod.image ? (prod.image.startsWith('http') ? prod.image : contextPath + '/' + prod.image) : contextPath + '/image/logoo2.png';
+                        let formattedPrice = prod.price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.price) : 'Liên hệ';
+                        productCardHtml = 
+                            '<a href="' + contextPath + '/product-detail?id=' + prod.id + '" target="_blank" class="chat-product-card-link text-decoration-none" style="display:block; margin-bottom:8px; border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#fff; color:#333;">' +
+                                '<div style="display:flex; padding:8px; gap:8px; align-items:center;">' +
+                                    '<img src="' + imgSrc + '" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:1px solid #eee; flex-shrink:0;" onerror="this.src=\'' + contextPath + '/image/logoo2.png\'">' +
+                                    '<div style="flex:1; min-width:0; text-align:left;">' +
+                                        '<div style="font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#0051c6;">' + escapeHtml(prod.name) + '</div>' +
+                                        '<div style="font-size:11px; color:#666; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.2; max-height:2.4em; margin-bottom:2px;">' + escapeHtml(prod.desc || '') + '</div>' +
+                                        '<div style="font-weight:bold; font-size:12px; color:red;">' + formattedPrice + '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</a>';
+                    } catch(e) {
+                        (function(){})('Parse product card error:', e);
+                    }
+                }
+                div.innerHTML = (productCardHtml ? productCardHtml : '') +
+                    '<span class="msg-text">' + contentHtml + '</span>' +
+                    '<span class="msg-time">' + formatChatTime(m.sendTime) + '</span>';
+                chatBody.appendChild(div);
+                if (index === lastUserMsgIndex && m.status === 'READ') {
+                    const readReceipt = document.createElement('div');
+                    readReceipt.className = 'read-receipt text-end text-muted';
+                    readReceipt.style.fontSize = '11px';
+                    readReceipt.style.marginTop = '-5px';
+                    readReceipt.style.marginBottom = '10px';
+                    readReceipt.innerHTML = '<i class="bi bi-check2-all text-primary"></i> Đã xem';
+                    chatBody.appendChild(readReceipt);
+                }
+            });
+            scrollToBottomChat();
+        }
+
+        function sendMessage() {
+            const textContent = chatInput.value.trim();
+            if (!textContent && !selectedChatProduct) return;
+            let content = '';
+            if (selectedChatProduct) {
+                const productSummary = {
+                    id: selectedChatProduct.id,
+                    name: selectedChatProduct.name,
+                    image: selectedChatProduct.image,
+                    desc: selectedChatProduct.description,
+                    price: selectedChatProduct.price
+                };
+                content = '[PRODUCT_CARD]' + JSON.stringify(productSummary) + '[/PRODUCT_CARD] ' + textContent;
+            } else {
+                content = textContent;
+            }
+            chatInput.value = '';
+            selectedChatProduct = null;
+            const attachmentBar = document.getElementById('chatAttachmentBar');
+            if (attachmentBar) attachmentBar.style.display = 'none';
+            const div = document.createElement('div');
+            div.className = 'message user';
+            let contentHtml = content;
+            let productCardHtml = '';
+            if (contentHtml.includes('[PRODUCT_CARD]') && contentHtml.includes('[/PRODUCT_CARD]')) {
+                const startIdx = contentHtml.indexOf('[PRODUCT_CARD]');
+                const endIdx = contentHtml.indexOf('[/PRODUCT_CARD]');
+                const jsonStr = contentHtml.substring(startIdx + 14, endIdx);
+                contentHtml = contentHtml.substring(endIdx + 15).trim();
+                try {
+                    const prod = JSON.parse(jsonStr);
+                    let imgSrc = prod.image ? (prod.image.startsWith('http') ? prod.image : contextPath + '/' + prod.image) : contextPath + '/image/logoo2.png';
+                    let formattedPrice = prod.price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(prod.price) : 'Liên hệ';
+                    productCardHtml = 
+                        '<a href="' + contextPath + '/product-detail?id=' + prod.id + '" target="_blank" class="chat-product-card-link text-decoration-none" style="display:block; margin-bottom:8px; border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#fff; color:#333;">' +
+                            '<div style="display:flex; padding:8px; gap:8px; align-items:center;">' +
+                                '<img src="' + imgSrc + '" style="width:50px; height:50px; object-fit:cover; border-radius:4px; border:1px solid #eee; flex-shrink:0;" onerror="this.src=\'' + contextPath + '/image/logoo2.png\'">' +
+                                '<div style="flex:1; min-width:0; text-align:left;">' +
+                                    '<div style="font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#0051c6;">' + escapeHtml(prod.name) + '</div>' +
+                                    '<div style="font-size:11px; color:#666; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.2; max-height:2.4em; margin-bottom:2px;">' + escapeHtml(prod.desc || '') + '</div>' +
+                                    '<div style="font-weight:bold; font-size:12px; color:red;">' + formattedPrice + '</div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</a>';
+                } catch(e) {}
+            }
+            div.innerHTML = (productCardHtml ? productCardHtml : '') +
+                '<span class="msg-text">' + contentHtml + '</span><span class="msg-time">' + formatChatTime(new Date()) + '</span>';
+            chatBody.appendChild(div);
+            scrollToBottomChat();
+            fetch(contextPath + '/chat?action=send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRF-Token': '${sessionScope.CSRF_TOKEN}'
+                },
+                body: new URLSearchParams({action: 'send', content: content, _csrf: '${sessionScope.CSRF_TOKEN}'})
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadChatHistory();
+                    }
+                });
+        }
+
+        if (sendChat) {
+            sendChat.addEventListener('click', sendMessage);
+        }
+        let chatSuggestDebounce = null;
+        if (chatInput) {
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+            chatInput.addEventListener('input', () => {
+                const text = chatInput.value.trim();
+                if (text.length < 2) {
+                    const suggestBox = document.getElementById('chatSuggestBox');
+                    if (suggestBox) suggestBox.style.display = 'none';
+                    return;
+                }
+                clearTimeout(chatSuggestDebounce);
+                chatSuggestDebounce = setTimeout(() => {
+                    fetch(contextPath + "/search-suggestion?keyword=" + encodeURIComponent(text))
+                        .then(res => res.json())
+                        .then(data => {
+                            displayChatSuggestions(data);
+                        })
+                        .catch(err => {});
+                }, 300);
+            });
+            document.addEventListener('click', (e) => {
+                const suggestBox = document.getElementById('chatSuggestBox');
+                if (suggestBox && !suggestBox.contains(e.target) && e.target !== chatInput) {
+                    suggestBox.style.display = 'none';
+                }
+            });
+        }
+
+        function updateUnreadCount() {
+            if (!userLoggedIn) return;
+            fetch(contextPath + '/chat?action=unread-count&_t=' + new Date().getTime())
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.count > 0) {
+                        unreadBadge.textContent = data.count;
+                        unreadBadge.style.display = 'flex';
+                    } else {
+                        unreadBadge.style.display = 'none';
+                    }
+                });
+        }
+
+        if (userLoggedIn) {
+            updateUnreadCount();
+            setInterval(() => {
+                if (chatWindow.classList.contains('active')) {
+                    loadChatHistory();
+                } else {
+                    updateUnreadCount();
+                }
+            }, 5000);
+        }
+    })();
+</script>
+

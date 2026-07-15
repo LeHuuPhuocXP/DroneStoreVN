@@ -1,0 +1,481 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Trang Quản Trị - SkyDrone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet"
+          href="${pageContext.request.contextPath}/stylesheets/admin/uncomfirmed-order-manage.css">
+</head>
+
+<body>
+<header class="main-header">
+    <div class="logo">
+        <img src="${pageContext.request.contextPath}/image/logoo2.png" alt="Logo">
+        <h2>SkyDrone Admin</h2>
+    </div>
+    <div class="header-right">
+        <a href="${pageContext.request.contextPath}/admin/profile"
+           class="text-decoration-none text-while">
+            <div class="thong-tin-admin d-flex align-items-center gap-2">
+                <i class="bi bi-person-circle fs-4"></i>
+                <span class="fw-semibold">${sessionScope.user.fullName}</span>
+            </div>
+        </a>
+        <button class="logout-btn" id="logoutBtn" title="Đăng xuất">
+            <i class="bi bi-box-arrow-right"></i>
+        </button>
+    </div>
+    <div class="logout-modal" id="logoutModal">
+        <div class="logout-modal-content">
+            <p>Bạn có chắc muốn đăng xuất không?</p>
+            <div class="logout-actions">
+                <a href="${pageContext.request.contextPath}/Logout">
+                    <button id="confirmLogout" class="confirm">Có</button>
+                </a>
+                <button id="cancelLogout" class="cancel">Không</button>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="layout">
+    <jsp:include page="sidebar.jsp">
+        <jsp:param name="activePage" value="orders"/>
+        <jsp:param name="activeSubPage" value="rejected"/>
+    </jsp:include>
+    <main class="main-content container-fluid p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="text-danger fw-bold mb-0">
+                <i class="bi bi-shield-x"></i> Đơn Hàng Bị Từ Chối
+            </h4>
+            <div class="d-flex align-items-center gap-3">
+                <a href="${pageContext.request.contextPath}/admin/unconfirmed-orders"
+                   class="btn btn-outline-secondary shadow-sm">
+                    <i class="bi bi-arrow-left"></i> Quay Lại
+                </a>
+                <form class="d-flex m-0" role="search" style="max-width: 300px;">
+                    <input type="hidden" name="_csrf" value="${sessionScope.CSRF_TOKEN}">
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white border-primary">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input id="searchInput" type="search" class="form-control border-primary"
+                               placeholder="Tìm kiếm đơn hàng..." aria-label="Tìm kiếm">
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="d-flex justify-content-start align-items-center mb-2">
+            <label class="me-2">Hiển thị</label>
+            <select id="rowsPerPage" class="form-select d-inline-block" style="width:80px;">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+            </select>
+            <label class="ms-2">đơn hàng</label>
+        </div>
+        <table id="tableDonHang" class="table table-striped table-bordered align-middle">
+            <thead class="table-primary">
+            <tr>
+                <th>Mã Hóa Đơn</th>
+                <th>Tên Khách Hàng</th>
+                <th>Số Điện Thoại</th>
+                <th>Ngày Lập Đơn</th>
+                <th>Tổng Tiền</th>
+                <th>Trạng Thái Thanh Toán</th>
+                <th>Thao Tác</th>
+            </tr>
+            </thead>
+            <tbody>
+            <c:forEach items="${orders}" var="o">
+                <tr>
+                    <td>${o.id}</td>
+                    <td>${o.customerName}</td>
+                    <td>${o.phoneNumber}</td>
+                    <td>
+                        <fmt:formatDate value="${o.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
+                    </td>
+                    <fmt:setLocale value="vi_VN"/>
+                    <td>
+                        <fmt:formatNumber value="${o.totalPrice}" pattern="#,##0 VNĐ"/>
+                    </td>
+                    <td>
+                        <span class="badge ${o.statusClass}">${o.statusLabel}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-info btn-sm" data-id="${o.id}"
+                                onclick="loadOrderDetail(${o.id})">
+                            <i class="bi bi-eye"></i> Xem Chi Tiết
+                        </button>
+                    </td>
+                </tr>
+            </c:forEach>
+            </tbody>
+        </table>
+        <div class="d-flex justify-content-end align-items-center mt-3">
+            <div class="pagination-controls">
+                <button id="prevPage" class="btn btn-outline-primary btn-sm">Trước</button>
+                <span id="pageInfo" class="mx-2">1 / 1</span>
+                <button id="nextPage" class="btn btn-outline-primary btn-sm">Sau</button>
+            </div>
+        </div>
+    </main>
+</div>
+<div class="modal fade" id="modalChiTietDonHang">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+            <div class="modal-header bg-gradient bg-primary text-white">
+                <h5 class="modal-title d-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-text"></i> Chi Tiết Đơn Hàng
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm rounded-4">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-primary mb-2">Thông tin hóa đơn</h6>
+                                <table class="table table-sm table-borderless mb-3">
+                                    <tbody>
+                                    <tr>
+                                        <th>Mã hóa đơn:</th>
+                                        <td><span id="md_orderCode">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Tên khách hàng:</th>
+                                        <td><span id="md_customerName">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Số điện thoại:</th>
+                                        <td><span id="md_phone">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Email:</th>
+                                        <td><span id="md_email">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Ngày lập đơn:</th>
+                                        <td><span id="md_createdAt">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Tổng tiền:</th>
+                                        <td>
+                                            <span id="md_totalPrice" class="fw-bold text-danger">---</span>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                                <h6 class="fw-bold text-primary mb-2">Thông tin giao hàng</h6>
+                                <table class="table table-sm table-borderless">
+                                    <tbody>
+                                    <tr>
+                                        <th>Địa chỉ giao:</th>
+                                        <td><span id="md_address">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Mã vận đơn:</th>
+                                        <td><span id="md_shippingCode">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Ngày giao/nhận:</th>
+                                        <td><span id="md_completedAt">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Phí vận chuyển:</th>
+                                        <td><span id="md_shippingFee">---</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm rounded-4">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-primary mb-2">Sản phẩm trong đơn</h6>
+                                <table class="table table-bordered align-middle text-center small">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th>Tên sản phẩm</th>
+                                        <th>SL</th>
+                                        <th>Giá</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="md_productList">
+                                    </tbody>
+                                </table>
+                                <h6 class="fw-bold text-primary mt-3 mb-2">Thanh toán & Trạng thái</h6>
+                                <table class="table table-sm table-borderless">
+                                    <tbody>
+                                    <tr>
+                                        <th>Hình thức TT:</th>
+                                        <td><span id="md_paymentMethod">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Trạng thái TT:</th>
+                                        <td><span id="md_paymentStatus">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Trạng thái VC:</th>
+                                        <td><span id="md_orderStatus">---</span></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Ghi chú:</th>
+                                        <td><span id="md_note">---</span></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light d-flex justify-content-between">
+                <div class="text-muted small fst-italic">Kiểm tra kỹ trước khi xác nhận đơn hàng.</div>
+                <div>
+                    <button id="cancelBtn" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Đóng
+                    </button>
+                    <button id="restoreBtn" class="btn btn-success">
+                        <i class="bi bi-arrow-counterclockwise"></i> Khôi Phục
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const CSRF_TOKEN = "${sessionScope.CSRF_TOKEN}";
+    let currentOrderId = null;
+
+    function loadOrderDetail(orderId) {
+        currentOrderId = orderId;
+        fetch('${pageContext.request.contextPath}/admin/order-detail?id=' + orderId)
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                return res.json();
+            })
+            .then(data => {
+                if (!data || !data.items) {
+                    alert("Không có dữ liệu đơn hàng");
+                    return;
+                }
+                const o = data.order;
+                document.getElementById("md_orderCode").innerText = o.id;
+                document.getElementById("md_customerName").innerText = o.customerName;
+                document.getElementById("md_phone").innerText = o.phoneNumber;
+                document.getElementById("md_email").innerText = o.email || "---";
+                document.getElementById("md_createdAt").innerText = formatDate(o.createdAt);
+                document.getElementById("md_totalPrice").innerText =
+                    Number(o.totalPrice).toLocaleString("vi-VN") + " VNĐ";
+                document.getElementById("md_address").innerText = o.fullAddress || "---";
+                document.getElementById("md_shippingCode").innerText =
+                    o.shippingCode || "Chưa có";
+                document.getElementById("md_completedAt").innerText =
+                    o.completedAt ? formatDate(o.completedAt) : "Chưa giao";
+                document.getElementById("md_shippingFee").innerText =
+                    o.shippingFee ? Number(o.shippingFee).toLocaleString("vi-VN") + " VNĐ" : "0 VNĐ";
+                const items = data.items;
+                const tbody = document.getElementById("md_productList");
+                tbody.innerHTML = "";
+                items.forEach(item => {
+                    const tr = document.createElement("tr");
+                    const tdName = document.createElement("td");
+                    const imgSrc = item.imageUrl
+                        ? (item.imageUrl.startsWith('http') ? item.imageUrl : '${pageContext.request.contextPath}/' + item.imageUrl)
+                        : '${pageContext.request.contextPath}/image/logoTCN.png';
+                    tdName.innerHTML =
+                        '<div class="d-flex align-items-center justify-content-start gap-2 text-start">' +
+                        '<img src="' + imgSrc + '" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid #ddd;" />' +
+                        '<span class="text-truncate" style="max-width: 250px;" title="' + (item.productName || '---') + '">' + (item.productName || '---') + '</span>' +
+                        '</div>';
+                    tr.appendChild(tdName);
+                    const tdQty = document.createElement("td");
+                    tdQty.textContent = item.quantity != null ? item.quantity : "0";
+                    tr.appendChild(tdQty);
+                    const tdPrice = document.createElement("td");
+                    const priceNum = parseFloat(item.price) || 0;
+                    tdPrice.textContent = priceNum.toLocaleString("vi-VN") + " VNĐ";
+                    tr.appendChild(tdPrice);
+                    tbody.appendChild(tr);
+                });
+                document.getElementById("md_paymentMethod").innerText =
+                    o.paymentMethod || "COD";
+                document.getElementById("md_paymentStatus").innerText =
+                    o.paymentMethod ? "Đã thanh toán" : "Chưa thanh toán";
+                document.getElementById("md_orderStatus").innerText = o.status;
+                document.getElementById("md_note").innerText = o.note || "---";
+                const modal = new bootstrap.Modal(
+                    document.getElementById("modalChiTietDonHang")
+                );
+                modal.show();
+            })
+            .catch(err => {
+                (function(){})(err);
+                alert("Lỗi tải chi tiết đơn hàng");
+            });
+    }
+
+    function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString("vi-VN");
+    }
+
+    function handleOrderAction(orderId, action, note) {
+        const params = new URLSearchParams();
+        params.append('id', orderId);
+        params.append('action', action);
+        if (note) params.append('note', note);
+        Swal.fire({
+            title: "Đang xử lý...",
+            text: "Vui lòng chờ trong giây lát",
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        fetch('${pageContext.request.contextPath}/admin/order-action', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                "X-CSRF-Token": CSRF_TOKEN
+            },
+            body: params.toString()
+        })
+            .then(res => res.json())
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    Swal.fire({
+                        title: "Thành công!",
+                        text: "Trạng thái đơn hàng đã được cập nhật",
+                        icon: "success",
+                        confirmButtonColor: "#0d6efd"
+                    });
+                    const table = $('#tableDonHang').DataTable();
+                    table
+                        .row($('#tableDonHang button[data-id="' + orderId + '"]').parents('tr'))
+                        .remove()
+                        .draw();
+                    const modal = bootstrap.Modal.getInstance(
+                        document.getElementById('modalChiTietDonHang')
+                    );
+                    if (modal) modal.hide();
+                } else {
+                    Swal.fire({
+                        title: "Thất bại!",
+                        text: "Không thể cập nhật đơn hàng",
+                        icon: "error",
+                        confirmButtonColor: "#dc3545"
+                    });
+                }
+            })
+            .catch(err => {
+                Swal.close();
+                (function(){})("Error:", err);
+                Swal.fire({
+                    title: "Lỗi kết nối!",
+                    text: "Không thể kết nối đến server",
+                    icon: "error",
+                    confirmButtonColor: "#dc3545"
+                });
+            });
+    }
+
+    $(document).ready(function () {
+        var table = $('#tableDonHang').DataTable({
+            paging: true,
+            info: false,
+            lengthChange: false,
+            searching: true,
+            pageLength: 10,
+            order: [[0, "desc"]],
+            language: {
+                zeroRecords: "Không tìm thấy kết quả",
+                paginate: {previous: "Trước", next: "Sau"}
+            },
+            dom: 't',
+        });
+
+        function updatePageInfo() {
+            var info = table.page.info();
+            $("#pageInfo").text((info.page + 1) + " / " + info.pages);
+        }
+
+        updatePageInfo();
+        $("#prevPage").click(function () {
+            table.page('previous').draw('page');
+            updatePageInfo();
+        });
+        $("#nextPage").click(function () {
+            table.page('next').draw('page');
+            updatePageInfo();
+        });
+        $("#searchInput").on("keyup", function () {
+            let value = $(this).val();
+            table.search(value).draw();
+            updatePageInfo();
+        });
+        $("#rowsPerPage").change(function () {
+            var value = $(this).val();
+            table.page.len(value).draw();
+            updatePageInfo();
+        });
+        table.on('draw', function () {
+            updatePageInfo();
+        });
+        $("#restoreBtn").on("click", function () {
+            if (!currentOrderId) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Lỗi",
+                    text: "Không xác định được đơn hàng",
+                    confirmButtonColor: "#0d6efd"
+                });
+                return;
+            }
+            Swal.fire({
+                title: "Khôi phục đơn hàng?",
+                text: "Bạn có chắc chắn muốn khôi phục đơn hàng này về trạng thái Chưa Xác Nhận?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Khôi Phục",
+                cancelButtonText: "Hủy",
+                confirmButtonColor: "#198754",
+                cancelButtonColor: "#6c757d"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    handleOrderAction(currentOrderId, "restore");
+                }
+            });
+        });
+        $("#cancelBtn").on("click", function () {
+            const modalEl = document.getElementById('modalChiTietDonHang');
+            const bsModal = bootstrap.Modal.getInstance(modalEl);
+            if (bsModal) {
+                bsModal.hide();
+            }
+        });
+        $("#logoutBtn").on("click", function () {
+            $("#logoutModal").css("display", "flex");
+        });
+        $("#cancelLogout").on("click", function () {
+            $("#logoutModal").hide();
+        });
+    });
+</script>
+</body>
+</html>
